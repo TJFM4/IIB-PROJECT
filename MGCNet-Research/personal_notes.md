@@ -45,3 +45,6 @@ The validation set is pointed at ./preprocess/data_split/cpsc2021 but this folde
 
 ## train.py, test.py, run_experiments.py
 These three scripts make up the experiment pipeline. **train.py** fits the model and saves the best weights, **test.py** reloads those weighhts and scores them, and **run_experiments.py** runs the two in order. 
+
+## changes.md
+Documentation of the changes made to MGCNet-Research relative to the original MGCNet repository. 
