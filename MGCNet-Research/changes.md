@@ -1,0 +1,1 @@
+This file contains documentation and summaries of the changes made to the original MGCNet repository during this research project. 
