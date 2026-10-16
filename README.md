@@ -8,7 +8,10 @@ This folder contains the MGCNet, ECG-Mamba, and ECG-Mamba-V2 papers which charac
 ECG-Mamba-V2 was trained on 12-lead data while MGCNet was trained on 2-lead data collected from a Holter monitor. MGCNet's implementation of Cross-Modal Supervised Contrastive Loss (CSCL) was designed to sharpen the model's classification boundaries in order to improve robustness across datasets. While it exhibited strong performance across two datasets (trained on one, tested on the other), both were comprised of high quality data collected in a clinical setting. Once again, this data is likely more relevant to the diagostic use case than the screening application which could preventatively alleviate hospital loads due to unexpected stroke and heart palpitations.
 
 ### MGCNet
-This folder contains the MGCNet repository copied from https://github.com/Ou-Young-1999/MGCNet. 
+This folder contains the original MGCNet repository copied from https://github.com/Ou-Young-1999/MGCNet. 
+
+### MGCNet-Research
+This folder contains a modified version of the MGCNet repository. Adjustments include changes to the data management, storage, and calling pipeline, the preprocessing techniques, the data augmentation techniques, the model's training, and the architecture. These changes are documented in MGCNet-Research/changes. 
 
 ### physionet2017
 This folder contains the dataset used in the 2017 PhysioNet Computing in Cardiology (CinC) Challenge. 
