@@ -12,116 +12,130 @@ import matplotlib
 from scipy import signal
 
 
-class AFDataset(Dataset):
+class AFDataset(Dataset): # PyTorch Dataset
     def __init__(self, path1, path2, split='train', fold=1, transform=None, oversample=False, ga_test=False):
         self.path1 = path1
         self.path2 = path2
-        json_path = os.path.join(path1,'fold_'+str(fold)+'.json')
+        json_path = os.path.join(path1,'fold_'+str(fold)+'.json') # Sets the path name to the JSON file for the specific fold provided to the function. 
         with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        if ga_test == True:
+            data = json.load(f) # Loads the JSON to data
+        if ga_test == True: # If ga_test is True, the file names are set to the two subsets of data. 
             self.file_names = data['train'] + data['val']
-        else:
+        else: # If ga_test is False, the file name is set to that of the subset provided by the split variable. 
             self.file_names = data[split]
-        self.transform = transform
-        self.oversample = oversample and (split == 'train')  # 只在训练集开启
+        self.transform = transform 
+        self.oversample = oversample and (split == 'train')
 
-        # 加载数据
-        if 'cpsc2021' in path1:
-            self.X, self.y = self._load_all_segments_cpsc2021()
-        else:
-            self.X, self.y = self._load_all_segments()
+        if 'cpsc2021' in path1: # For CPSC2021 dataset
+            self.X, self.y = self._load_all_segments_cpsc2021() # Defined below
+        else: # For AFDB dataset
+            self.X, self.y = self._load_all_segments() # Defined below
 
-        # 转换标签为数字
+        # Set the labels to 0 or 1
         self.y = np.array([1 if label == 'AFIB' else 0 for label in self.y])
 
-        # 如果是训练集且启用过采样，则进行少数类过采样
+        # If oversample is True, oversample the minority class in order to compensate for class imbalance. 
         if self.oversample:
-            self.X, self.y = self._oversample_minority_class()
+            self.X, self.y = self._oversample_minority_class() # Defined below
 
-    def _load_all_segments_cpsc2021(self):
-        all_X = []
-        all_y = []
-        json_path = os.path.join(self.path1,'case_to_files.json')
-        with open(json_path, 'r', encoding='utf-8') as f:
+    # Each .npz file's data['segments'] has the format: (n_segments, L, C) (the number of segments, the number of samples per segment, and the leads)
+
+    def _load_all_segments_cpsc2021(self): # Function to load data into self.X and self.y for CPSC2021
+        all_X = [] # Initialise the segment list
+        all_y = [] # Initialise the label list
+        json_path = os.path.join(self.path1,'case_to_files.json') # Sets the JSON file path
+        with open(json_path, 'r', encoding='utf-8') as f: # Loads the JSON data
             json_data = json.load(f)
-        for fname in self.file_names:
-            for fcase in json_data[fname]:
-                npz_path = os.path.join(self.path2, fcase)
-                data = np.load(npz_path)
-                X = data['segments']
-                y = data['labels']
-                if X.ndim < 3:
+        for fname in self.file_names: # self.file names is either data['train'] or data['val']] (or data['test'])
+            for fcase in json_data[fname]: # For each case in the train, val, or test data subset
+                npz_path = os.path.join(self.path2, fcase) # Path to the case
+                data = np.load(npz_path) # Loads the case
+                X = data['segments'] # Loads the number of segments from the case
+                y = data['labels'] # 1D array containing 1/0 labels for the segments
+                if X.ndim < 3: 
                     continue
-                all_X.append(X)
-                all_y.append(y)
-        X_full = np.concatenate(all_X, axis=0)
-        y_full = np.concatenate(all_y, axis=0)
+                all_X.append(X) # Append the segments of this case to the list of all segments
+                all_y.append(y) # Append the labels of this case to the list of all labels
+        X_full = np.concatenate(all_X, axis=0) # Concatenates all of the cases, summing the number of segments in the first column
+        y_full = np.concatenate(all_y, axis=0) # Concatenates all the labels
+
+        # For the X data, the concatenate does as follows: 
+            # case A: (120, L, C)
+            # case B: ( 85, L, C)   →   X_full: (120 + 85 + 40, L, C) = (245, L, C)
+            # case C: ( 40, L, C)
+
+        # y_full[i] is the label for X_full[i]
+    
         return X_full, y_full
 
-    def _load_all_segments(self):
-        all_X = []
-        all_y = []
-        for fname in self.file_names:
-            npz_path = os.path.join(self.path2, fname+'.npz')
-            data = np.load(npz_path)
-            X = data['segments']
+    def _load_all_segments(self): # Function to load data into self.X and self.y for AFDB
+        all_X = [] # Initalise the list of segments
+        all_y = [] # Intialise the list of labels
+        for fname in self.file_names: # self.file names is either data['train'] or data['val']] (or data['test'])
+            npz_path = os.path.join(self.path2, fname+'.npz') # Sets the path to the .npz file (contains ECG data)
+            data = np.load(npz_path) # Loads the data
+            X = data['segments'] 
             y = data['labels']
             if X.ndim < 3:
                 continue
-            all_X.append(X)
-            all_y.append(y)
+            all_X.append(X) # Append the segment data to all_X
+            all_y.append(y) # Append the label data to all_y
         X_full = np.concatenate(all_X, axis=0)
         y_full = np.concatenate(all_y, axis=0)
 
+        # y_full[i] is the label for X_full[i]
+
         return X_full, y_full
 
-    def _generate_image(self, seg):
+    def _generate_image(self, seg): # Spectrogram image generation function
 
-        fs = 250
-        signal = seg[:, 0].astype(np.float32)
-        # 计算 STFT
+        fs = 250 # Sampling frequency
+        signal = seg[:, 0].astype(np.float32) # Take only the segment data from the data vector
+        # STFT
         win_sec = 1
-        nperseg = int(win_sec * fs)
-        noverlap = nperseg // 2
-        f, t, Zxx = stft(signal, fs=fs, nperseg=nperseg, noverlap=noverlap)
-        mag = np.abs(Zxx)  # (freq_bins, time_frames)
+        nperseg = int(win_sec * fs) # 250
+        noverlap = nperseg // 2 # 125 (Nyquist Sampling Theorem)
+        f, t, Zxx = stft(signal, fs=fs, nperseg=nperseg, noverlap=noverlap) # STFT
+        mag = np.abs(Zxx)  # (freq_bins, time_frames) 
 
-        # 裁剪频率范围（0–40 Hz）
-        f_max_plot = 40.0
+        # 0–40 Hz）
+        f_max_plot = 40.0 
         freq_mask = f <= f_max_plot
-        mag = mag[freq_mask, :]
+        mag = mag[freq_mask, :] # No Butterworth filter applied - just takes the frequencies in a certain range
 
-        # 转 dB
-        mag = 20 * np.log10(mag + 1e-8)
-        mag = np.clip(mag, -80, mag.max())
+        # dB
+        mag = 20 * np.log10(mag + 1e-8) # Converts to dB
+        mag = np.clip(mag, -80, mag.max()) # Clips the dB range between -80 and mag.max()
 
-        # 归一化到 [0, 1]
-        mag = (mag + 80) / 100.0 
+        # [0, 1]
+        mag = (mag + 80) / 100.0 # Normalises the dB values to 0=1 range 
 
-        # 调整尺寸到 (128, 128)
-        mag_resized = resize(mag, (128,128), anti_aliasing=True, preserve_range=True)
+        # (128, 128)
+        mag_resized = resize(mag, (128,128), anti_aliasing=True, preserve_range=True) # Converts the vector to a matrix of 128x128 pixels
 
-        # 使用 matplotlib colormap 转换为 RGB
-        cmap = matplotlib.colormaps.get_cmap('jet')
-        rgb = cmap(mag_resized)[:, :, :3]  # 去掉 alpha 通道
+        #  matplotlib colormap - RGB
+        cmap = matplotlib.colormaps.get_cmap('jet') # Greyscale to RGB
+        rgb = cmap(mag_resized)[:, :, :3]  # alpha 
 
         return rgb
 
-    def _oversample_minority_class(self):
+    def _oversample_minority_class(self): # Function to deal with class imbalance 
         """
-        对少数类（AFIB, label=1）进行随机过采样，使其数量等于多数类
+        (AFIB, label=1)
+        (N, label=0)
         """
-        X = self.X
+        X = self.X 
         y = self.y
 
-        # 分离正负样本
+        # Finds the indices of each class in the label array
         idx_0 = np.where(y == 0)[0]
         idx_1 = np.where(y == 1)[0]
 
+        # Sections the data into each class
         X_0, y_0 = X[idx_0], y[idx_0]
         X_1, y_1 = X[idx_1], y[idx_1]
 
+        # AF is the minority (fewer segments)
         n_majority = len(X_0)
         n_minority = len(X_1)
 
@@ -129,13 +143,12 @@ class AFDataset(Dataset):
             print(f"[Oversample] No need: minority ({n_minority}) >= majority ({n_majority})")
             return X, y
 
-        # 随机重复采样少数类（允许重复）
-        np.random.seed(42)  # 保证可复现
-        oversample_idx = np.random.choice(idx_1, size=n_majority - n_minority, replace=True)
-        X_1_oversampled = X[oversample_idx]
+        np.random.seed(42)
+        oversample_idx = np.random.choice(idx_1, size=n_majority - n_minority, replace=True) # Choose some AF segment indices
+        X_1_oversampled = X[oversample_idx] 
         y_1_oversampled = y[oversample_idx]
 
-        # 合并
+        # Adds the oversampled (double-sampled essentially) samples to the dataset
         X_balanced = np.concatenate([X_0, X_1, X_1_oversampled], axis=0)
         y_balanced = np.concatenate([y_0, y_1, y_1_oversampled], axis=0)
 
@@ -143,11 +156,7 @@ class AFDataset(Dataset):
 
         return X_balanced, y_balanced
 
-    # ----------------------------
-    # 干扰生成函数
-    # ----------------------------
-
-    def _add_baseline_wander(self, x, fs=250, amplitude_ratio=0.7):
+    def _add_baseline_wander(self, x, fs=250, amplitude_ratio=0.7): # Add baseline wander to the data
         """
         Add baseline wander to multi-lead ECG signal of shape (L, C).
         
@@ -195,7 +204,7 @@ class AFDataset(Dataset):
 
         return x_noisy
 
-    def _add_powerline_noise(self, x, fs=250, f0=50, snr_db=20, harmonics=2):
+    def _add_powerline_noise(self, x, fs=250, f0=50, snr_db=20, harmonics=2): # Adds powerline noise
         """
         Add powerline noise to ECG signal of shape (L,) or (L, C).
         All channels share the same interference (physiologically realistic).
@@ -250,14 +259,13 @@ class AFDataset(Dataset):
         L, C = x.shape
         signal_power = np.mean(x ** 2)
 
-        # ✅ 确保 bandwidth 不超过 Nyquist 频率
+        # Nyquist Theorem
         nyq = 0.5 * fs
         low, high = bandwidth
-        low = max(low, 1)          # 至少 >0
-        high = min(high, nyq * 0.999)  # 必须 < nyq（留一点余量）
+        low = max(low, 1)         
+        high = min(high, nyq * 0.999) 
         
         if low >= high:
-            # 如果带宽无效，退化为白噪声或直接返回
             noise = np.random.randn(L, C)
         else:
             noise = np.random.randn(L, C)
@@ -279,15 +287,15 @@ class AFDataset(Dataset):
     def __len__(self):
         return len(self.X)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx): # Builds a single training sample
         x = self.X[idx]
         y = self.y[idx]
-        if self.transform:
+        if self.transform: # Apply the transformation if one is provided
             x = self.transform(x)
         # x = self._add_emg_noise(x)
-        img = self._generate_image(x)
-        img = torch.from_numpy(img).permute(2, 0, 1).float() 
-        x = torch.tensor(x, dtype=torch.float32)[:, 0:1]  # 取第一导联
+        img = self._generate_image(x) # Build the spectrogram image
+        img = torch.from_numpy(img).permute(2, 0, 1).float()  # Reorder the image from (H, W, C) to (C, H, W)
+        x = torch.tensor(x, dtype=torch.float32)[:, 0:1]  # Keep only the first lead
         
         y = torch.tensor(y, dtype=torch.long)
         return x, img, y
