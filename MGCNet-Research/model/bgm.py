@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from thop import profile
 
+# Contrastive Loss Function
+## The steps make more sense when followed next to a diagram (see MGCNet Architecture Notability document). 
 def _contrastive_loss_single(anchor_features, contrast_features, labels, exclude_self, temperature=0.1):
     """
     Multi-positive InfoNCE loss (SupCon-style) with numerical stability.
@@ -43,16 +45,15 @@ def _contrastive_loss_single(anchor_features, contrast_features, labels, exclude
 
     return loss_per_anchor.mean()
 
-
+# Four Types of Contrastive Loss
+## Inter and Intra Time and Frequency Domains
 def intra_time_contrastive_loss(t_features, labels, temperature=0.1):
     """Modality-intrinsic contrastive loss for time-domain features."""
     return _contrastive_loss_single(t_features, t_features, labels, True, temperature)
 
-
 def intra_freq_contrastive_loss(f_features, labels, temperature=0.1):
     """Modality-intrinsic contrastive loss for frequency-domain features."""
     return _contrastive_loss_single(f_features, f_features, labels, True, temperature)
-
 
 def inter_modal_contrastive_loss(t_features, f_features, labels, temperature=0.1):
     """Cross-modal contrastive loss: time<->freq within same class."""
@@ -60,11 +61,7 @@ def inter_modal_contrastive_loss(t_features, f_features, labels, temperature=0.1
     loss_f2t = _contrastive_loss_single(f_features, t_features, labels, False, temperature)
     return (loss_t2f + loss_f2t) * 0.5
 
-
-# ----------------------------
-# 辅助模块
-# ----------------------------
-
+# 1D convolution layer including the convolution, batch normalization, and ReLU operations
 class Conv1DBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=3):
         super().__init__()
@@ -72,10 +69,11 @@ class Conv1DBlock(nn.Module):
         self.bn = nn.BatchNorm1d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
+    # Forward pass
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
 
-
+# 2D convolution layer including the convolution, batch normalisation, and ReLU operations
 class Conv2DBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
         super().__init__()
@@ -83,18 +81,16 @@ class Conv2DBlock(nn.Module):
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
+    # Forward pass
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
 
 
-# ----------------------------
-# 双向门控模块 (BGM)
-# ----------------------------
 class BGM(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.channels = channels
-        # 用于生成门控权重的 MLP（简单用 1x1 conv 或 linear）
+        # 1x1 conv linear
         self.gate_time_from_freq = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),  # [B, C, 1, 1]
             nn.Flatten(),
