@@ -315,7 +315,7 @@ if __name__ == '__main__':
     log_dir = os.path.join(config['logging']['tensorboard_dir'], config['title'])
     writer = SummaryWriter(log_dir)
 
-    # 开始训练
+    # Train the Model
     train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config)
 
     writer.close() # Closes the TensorBoard file
