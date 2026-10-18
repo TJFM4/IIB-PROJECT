@@ -4,14 +4,13 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import StratifiedKFold
 import os
 
-
+# Loads the JSON into a dictionary mapping each patient ID to its counts
 def load_patient_data(json_path):
-    """加载患者数据"""
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data
 
-
+# For a list of patient IDs, it adds up their N and AFIB counts and prints them
 def print_split_stats(patient_data, pids, title="Split"):
     """打印指定患者列表的标签统计"""
     if not pids:
@@ -28,7 +27,7 @@ def print_split_stats(patient_data, pids, title="Split"):
 
     return afib_ratio
 
-
+# Writes a fold as {"train": [...] and "val": [...]}, with the IDs sorted, to fold_{k}.json (for output_dir = data_split/bihaf)
 def save_fold_to_json(patient_data, train_pids, val_pids, fold_idx, output_dir):
     """保存每一折的划分"""
     os.makedirs(output_dir, exist_ok=True)
@@ -43,19 +42,18 @@ def save_fold_to_json(patient_data, train_pids, val_pids, fold_idx, output_dir):
 
 
 def main():
-    # === 输入配置 ===
     input_path = './data_split/bihaf/label_counts.json'
-    output_dir = "./data_split/bihaf"  # 输出文件夹
+    output_dir = "./data_split/bihaf"
     
-    n_splits = 5  # 改为 5 折
-    random_state = 42  # 固定随机种子，保证可复现
+    n_splits = 5  # 5 folds
+    random_state = 42  # seed?
 
-    # === 1. 加载数据 ===
+    # Load the patient data
     patient_data = load_patient_data(input_path)
     pids = list(patient_data.keys())
-    print(f"共 {len(pids)} 名患者")
+    print(f"Length of Patient IDs: {len(pids)}")
 
-    # === 2. 构造分层标签：根据 AFIB 占比分桶（用于 StratifiedKFold）===
+    # Assigns a bin label to the group of segments - 0 if less than 30% AFIB, 1 if 30-70% AFIB, 2 otherwise
     afib_ratios = []
     for pid in pids:
         n = patient_data[pid]['N']
@@ -71,14 +69,10 @@ def main():
             bin_label = 2
         afib_ratios.append(bin_label)
 
-    # === 3. 执行 5 折分层交叉验证 ===
+    # Stratified K Fold: Splits the patients so each fold has roughly the same mix of low, mid, and high AF patients. This is done at the patient level so one patient's segments never end up in both train and val sets. 
     random_state = 0
     while True:
         skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-
-        print(f"\n{'=' * 60}")
-        print("开始 5 折分层交叉验证")
-        print(f"{'=' * 60}")
 
         flag = 0
         for fold_idx, (train_idx, val_idx) in enumerate(skf.split(pids, afib_ratios), 1):
@@ -87,17 +81,18 @@ def main():
             train_pids = [pids[i] for i in train_idx]
             val_pids = [pids[i] for i in val_idx]
 
-            # 统计信息
+            # Check the split ratios for the sets
             all_ratio = print_split_stats(patient_data, pids, title="总数据集")
             train_ratio = print_split_stats(patient_data, train_pids, title="训练集")
             val_ratio = print_split_stats(patient_data, val_pids, title="验证集")
 
+            # Adds a flag if the set ratios are relatively similar
             if abs(all_ratio - train_ratio) < 0.02 and abs(all_ratio - val_ratio) < 0.02:
                 flag += 1
             else:
                 continue
-        if flag == n_splits:
-            print("随机种子选择：" + str(random_state))
+        if flag == n_splits: # n_splits = 5
+            print("Accepted Seed " + str(random_state))
             fold_idx = 1
             for train_idx, val_idx in skf.split(pids, afib_ratios):
                 train_pids = [pids[i] for i in train_idx]
@@ -106,20 +101,19 @@ def main():
                 fold_idx += 1
             break
         else:
-            print("随机种子比例不适配：" + str(random_state))
-            random_state += 1
+            print("Failed Seed " + str(random_state))
+            random_state += 1 # Changes the random state
         # except Exception:
-        #     print("随机种子错误不适配：" + str(random_state))
+        #     print("Error Seed" + str(random_state))
         #     random_state += 1
-        #     continue  # 跳过
+        #     continue
 
-        # 保存该折
         # save_fold_to_json(patient_data, train_pids, val_pids, fold_idx, output_dir)
 
     print(f"\n{'=' * 60}")
-    print("✅ 5 折交叉验证划分已完成！")
-    print(f"输出路径: {output_dir}")
-    print(f"文件: fold_1.json ~ fold_{n_splits}.json")
+    print("✅ 5 Folds")
+    print(f"Output Location: {output_dir}")
+    print(f"Files: fold_1.json ~ fold_{n_splits}.json")
     print(f"{'=' * 60}")
 
 
