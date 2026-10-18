@@ -85,7 +85,9 @@ class Conv2DBlock(nn.Module):
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
 
-
+# Bidirectional Gated Module
+## Once again, it is useful to consider these next to the architectural diagrams produced. 
+## Each branch produces a gate which scales the other branch's channels. 
 class BGM(nn.Module):
     def __init__(self, channels):
         super().__init__()
@@ -104,7 +106,7 @@ class BGM(nn.Module):
             nn.Sigmoid()
         )
 
-        # 下采样层（时域：stride=2；频域：stride=2）
+        # Downsampling (stride = 2), Conv1d for time and Conv2d for frequency
         self.downsample_time = nn.Sequential(
             nn.Conv1d(channels, channels, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(channels),
@@ -116,6 +118,7 @@ class BGM(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+    # Forward pass
     def forward(self, x_time, x_freq):
         """
         x_time: [B, C, L]
@@ -125,24 +128,18 @@ class BGM(nn.Module):
             out_freq: [B, C, H//2, W//2]
         """
 
-        # 生成门控
         gate_for_time = self.gate_time_from_freq(x_freq)  # [B, C]
         gate_for_freq = self.gate_freq_from_time(x_time)  # [B, C]
 
-        # 应用门控（广播）
         x_time_gated = x_time * gate_for_time.unsqueeze(-1)  # [B, C, L]
         x_freq_gated = x_freq * gate_for_freq.unsqueeze(-1).unsqueeze(-1)  # [B, C, H, W]
 
-        # 下采样
         out_time = self.downsample_time(x_time_gated)  # [B, C, L//2]
         out_freq = self.downsample_freq(x_freq_gated)  # [B, C, H//2, W//2]
 
         return out_time, out_freq
 
-
-# ----------------------------
-# 多模态门控融合 (GF)
-# ----------------------------
+# Combines a time and feature vector (not used)
 class GatedFusion(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -157,65 +154,69 @@ class GatedFusion(nn.Module):
         fused = gate * t_feat + (1 - gate) * f_feat
         return self.proj(fused)
 
-
-# ----------------------------
-# 主模型：GMCNet
-# ----------------------------
+# MGCNet Model
 class GMCNet(nn.Module):
     def __init__(self, num_classes=2, temperature=0.1):
         super().__init__()
         self.temperature = temperature
 
-        # === 时域分支初始处理 ===
+        # Initial Time Step - Conv1d, no downsampling (stride defaults to 1)
         self.time_init = nn.Sequential(
             Conv1DBlock(1, 32, kernel_size=3, padding=1)
-        )  # 输出: [B, 64, 1250]
+        )  # [B, 62, 1250]
+        # What I think: [B, 32, 2500]
 
-        # === 频域分支初始处理 ===
+        # Initial Frequency Step - Conv2d, no downsampling (stride defaults to 1)
         self.freq_init = nn.Sequential(
             Conv2DBlock(3, 32, kernel_size=3, padding=1),
-        )  # 输出: [B, 64, 64, 64]
+        )  # [B, 64, 64, 64]
+        # What I think: [B, 32, 128, 128]
 
-        # === 多级 BGM + 下采样 ===
+        ## All of the dimensions below are based on what I think, not their original annotated dimensions. 
+
+        # Three BGMs for the three layers
         self.bgm1 = BGM(channels=32)
         self.bgm2 = BGM(channels=64)
         self.bgm3 = BGM(channels=128)
 
-        # 下采样模块（用于与 BGM 输出拼接）
+        # Layer 1
         self.time_down1 = nn.Sequential(
             nn.Conv1d(32, 32, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(32),
             nn.ReLU(inplace=True)
-        )  # 2500 → 1250
+        )  # [B, 64, 1250]
         self.freq_down1 = nn.Sequential(
             nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True)
-        )
+        ) # [B, 64, 64, 64]
 
+        # Layer 2
         self.time_down2 = nn.Sequential(
             nn.Conv1d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(64),
             nn.ReLU(inplace=True)
-        )  # 1250 → 625
+        )  # [B, 128, 625]
         self.freq_down2 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True)
-        )
+        ) # [B, 128, 32, 32]
 
+        # Layer 3
         self.time_down3 = nn.Sequential(
             nn.Conv1d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True)
-        )   # 625 → 313
+        )   # [B, 256, 313]
         self.freq_down3 = nn.Sequential(
             nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True)
-        )
+        )   # [B, 256, 16, 16]
 
-        # 通道扩展卷积（拼接后调整通道）
+        # Adjusting channels after concatenation (doubles them each level)
+        # Layer 1
         self.expand1_time = nn.Sequential(
             nn.Conv1d(64, 64, kernel_size=3, padding=1),
             nn.BatchNorm1d(64),
@@ -227,6 +228,7 @@ class GMCNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        # Layer 2
         self.expand2_time = nn.Sequential(
             nn.Conv1d(128, 128, kernel_size=3, padding=1),
             nn.BatchNorm1d(128),
@@ -238,6 +240,7 @@ class GMCNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        # Layer 3
         self.expand3_time = nn.Sequential(
             nn.Conv1d(256, 256, kernel_size=3, padding=1),
             nn.BatchNorm1d(256),
@@ -249,15 +252,18 @@ class GMCNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        # GRU applied to the time data after layer 3
         self.gru = nn.GRU(
-            input_size=256,          # t3 的通道数
+            input_size=256,          
             hidden_size=128,
             num_layers=1,
-            batch_first=True,        # 输入形状: [B, L, C]
-            bidirectional=True      # 可设为 True，但需调整输出维度
+            batch_first=True,        # [B, L, C]
+            bidirectional=True      
         )
 
-        # 最终分类头
+        # Top Layer 
+        ## 512 = Concatenation of two 256 length vectors
+        ## First linear layer goes from 512 to 128. Second linear layer goes from 128 to 2 (num_classes). 
         self.classifier = nn.Sequential(
             nn.Linear(512, 128),
             nn.ReLU(),
@@ -265,6 +271,7 @@ class GMCNet(nn.Module):
             nn.Linear(128, num_classes)
         )
 
+    # Forward Pass
     def forward(self, x_time, x_freq, labels=None, 
                 use_intra_time=False, 
                 use_intra_freq=False, 
@@ -274,11 +281,11 @@ class GMCNet(nn.Module):
         x_freq: [B, 3, 128, 128]
         """
         x_time = x_time.transpose(1, 2)
-        # 初始特征提取
+        # Initial time and frequency
         t = self.time_init(x_time)  # [B, 32, 1250]
         f = self.freq_init(x_freq)  # [B, 32, 64, 64]
 
-        # ===== 第一级交互 =====
+        # BGM, then layer 1 of Conv blocks, then concatenate OG signal to gated one, then double channels
         t_b1, f_b1 = self.bgm1(t, f)  # t_b1: [B,32,625], f_b1: [B,32,32,32]
         t_d1 = self.time_down1(t)  # [B,32,625]
         f_d1 = self.freq_down1(f)  # [B,32,32,32]
@@ -288,7 +295,7 @@ class GMCNet(nn.Module):
         t1 = self.expand1_time(t1)  # [B,64,625]
         f1 = self.expand1_freq(f1)  # [B,64,32,32]
 
-        # ===== 第二级交互 =====
+        # BGM, then layer 2 of Conv blocks, then concatenate OG signal to gated one, then double channels
         t_b2, f_b2 = self.bgm2(t1, f1)  # t_b2: [B,64,313], f_b2: [B,64,16,16]
         t_d2 = self.time_down2(t1)  # [B,64,313]
         f_d2 = self.freq_down2(f1)  # [B,64,16,16]
@@ -297,59 +304,66 @@ class GMCNet(nn.Module):
         t2 = self.expand2_time(t2)  # [B,128,313]
         f2 = self.expand2_freq(f2)  # [B,128,16,16]
 
-        # ===== 第三级交互 =====
+        # ===== BGM, then layer 3 of Conv blocks, then concatenate OG signal to gated one, then double channels =====
         t_b3, f_b3 = self.bgm3(t2, f2)
         t_d3 = self.time_down3(t2)
         f_d3 = self.freq_down3(f2)
-
         t3 = torch.cat([t_b3, t_d3], dim=1)
         f3 = torch.cat([f_b3, f_d3], dim=1)
         t3 = self.expand3_time(t3)
         f3 = self.expand3_freq(f3)
 
+        # Pass the time signal through the GRU
         t3_seq = t3.transpose(1, 2)  # [B, L, 256]
         gru_out, _ = self.gru(t3_seq)  # gru_out: [B, L, 256]
         t_global = gru_out[:, -1, :]   # 取最后一个时间步: [B, 256]
 
-        # Global average pooling
+        # Global average pooling for the frequency signal
         f_global = F.adaptive_avg_pool2d(f3, 1).squeeze(-1).squeeze(-1)  # [B,256]
 
-        # 融合
+        # Concatenate the 256 length time signal and the 256 length frequency signal into a vector of length 512
         fused = torch.cat([t_global, f_global], dim=1)
+        
+        # Apply the classification layer
         logits = self.classifier(fused)
 
-        # 有监督对比损失
+        # Cross-Model Supervised Contrastive Loss (CSCL)
         if labels is not None:
             scl_losses = {}
             total_scl = 0.0
 
+            # Time-Time Contrastive Loss
             if use_intra_time:
                 loss_t = intra_time_contrastive_loss(t_global, labels, self.temperature)
                 scl_losses['intra_time'] = loss_t
                 total_scl += loss_t
 
+            # Frequency-Frequency Contrastive Loss
             if use_intra_freq:
                 loss_f = intra_freq_contrastive_loss(f_global, labels, self.temperature)
                 scl_losses['intra_freq'] = loss_f
                 total_scl += loss_f
 
+            # Cross-Model Contrastive Loss
             if use_inter_modal:
                 loss_cross = inter_modal_contrastive_loss(t_global, f_global, labels, self.temperature)
                 scl_losses['inter_modal'] = loss_cross
                 total_scl += loss_cross
 
+            # Returns probabilities of each class, total SCL, and the individual SCLs
             return logits, total_scl, scl_losses
 
+        # Returns probabilities of each class, the final 256 time vector, and the final 256 frequency vector
         return logits, t_global, f_global
 
 if __name__ == "__main__":
     model = GMCNet()
-    ecg = torch.randn(1, 2500, 1)  # batch=16
-    img = torch.randn(1, 3, 128,128)  # batch=16
+    ecg = torch.randn(1, 2500, 1)  # Sample ECG data
+    img = torch.randn(1, 3, 128,128)  # Sample spectrogram data
     y = model(ecg,img)
-    # print(y.shape)  # 应该是 [16, 2]
+    # print(y.shape)  # [16, 2]
 
-    # 计算 FLOPs 和参数量
+    # FLOPs 
     flops, params = profile(model, inputs=(ecg,img))
-    print(f"FLOPs: {flops / 1e9:.2f} GFLOPs")  # 将 FLOPs 转换为 GFLOPs
-    print(f"Parameters: {params / 1e6:.2f} M")  # 将参数量转换为百万
+    print(f"FLOPs: {flops / 1e9:.2f} GFLOPs")  # FLOPs in GFLOPs
+    print(f"Parameters: {params / 1e6:.2f} M")  # Number of Parameters
