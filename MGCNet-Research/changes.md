@@ -9,3 +9,5 @@ These .npz files were saved to afdb_dataset/data.
 The only change required for this file are the input (.npz data) and output (label_counts.json) paths. 
 
 After running stastic.py with this change, I compared my label_counts.json with the author's original. The values differed quite significantly for certain recordings. 
+
+From the MGCNet paper, they describe using the method of Zhao et al. to eliminate segments which are too noisy from the training data. This must be implemented into raw_to_npz_converter.ipynb. 
