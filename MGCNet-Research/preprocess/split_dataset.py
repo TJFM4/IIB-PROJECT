@@ -12,9 +12,7 @@ def load_patient_data(json_path):
 
 # For a list of patient IDs, it adds up their N and AFIB counts and prints them
 def print_split_stats(patient_data, pids, title="Split"):
-    """打印指定患者列表的标签统计"""
     if not pids:
-        print(f"{title}: 0 人")
         return 0.0
 
     N_total = sum(patient_data[pid]['N'] for pid in pids)
@@ -23,13 +21,12 @@ def print_split_stats(patient_data, pids, title="Split"):
     afib_ratio = AFIB_total / total_labels if total_labels > 0 else 0
 
     print(f"{title}")
-    print(f"  N: {N_total:>6,} | AFIB: {AFIB_total:>6,} | 总标签数: {total_labels:>7,} | AFIB占比: {afib_ratio:.3%}")
+    print(f"  N: {N_total:>6,} | AFIB: {AFIB_total:>6,} | Total: {total_labels:>7,} | AFIB Ratio: {afib_ratio:.3%}")
 
     return afib_ratio
 
 # Writes a fold as {"train": [...] and "val": [...]}, with the IDs sorted, to fold_{k}.json (for output_dir = data_split/bihaf)
 def save_fold_to_json(patient_data, train_pids, val_pids, fold_idx, output_dir):
-    """保存每一折的划分"""
     os.makedirs(output_dir, exist_ok=True)
     fold_data = {
         "train": sorted(train_pids),
@@ -38,12 +35,12 @@ def save_fold_to_json(patient_data, train_pids, val_pids, fold_idx, output_dir):
     filename = os.path.join(output_dir, f"fold_{fold_idx}.json")
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(fold_data, f, indent=4)
-    print(f"已保存: {filename}")
+    print(f"Filename: {filename}")
 
 
 def main():
-    input_path = './data_split/bihaf/label_counts.json'
-    output_dir = "./data_split/bihaf"
+    input_path = '/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research/preprocess/data_split/bihaf/label_counts.json'
+    output_dir = "/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research/preprocess/data_split/bihaf"
     
     n_splits = 5  # 5 folds
     random_state = 42  # seed?
@@ -60,7 +57,7 @@ def main():
         afib = patient_data[pid]['AFIB']
         total = n + afib
         ratio = afib / total if total > 0 else 0
-        # 分桶：0=低AFIB, 1=中, 2=高
+
         if ratio < 0.3:
             bin_label = 0
         elif ratio < 0.7:
@@ -82,9 +79,9 @@ def main():
             val_pids = [pids[i] for i in val_idx]
 
             # Check the split ratios for the sets
-            all_ratio = print_split_stats(patient_data, pids, title="总数据集")
-            train_ratio = print_split_stats(patient_data, train_pids, title="训练集")
-            val_ratio = print_split_stats(patient_data, val_pids, title="验证集")
+            all_ratio = print_split_stats(patient_data, pids, title="Overall Split Ratio")
+            train_ratio = print_split_stats(patient_data, train_pids, title="Training Split Ratio")
+            val_ratio = print_split_stats(patient_data, val_pids, title="Validation Split Ratio")
 
             # Adds a flag if the set ratios are relatively similar
             if abs(all_ratio - train_ratio) < 0.02 and abs(all_ratio - val_ratio) < 0.02:
