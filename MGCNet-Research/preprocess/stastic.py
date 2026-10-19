@@ -63,7 +63,7 @@ def analyze_npz_labels(folder_path, output_folder):
 
 
 if __name__ == "__main__":
-    folder_path = './afdb_dataset/data'
-    output_folder = './data_split/bihaf'
+    folder_path = '/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research/afdb_dataset/data'
+    output_folder = '/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research/preprocess/data_split/bihaf'
 
     analyze_npz_labels(folder_path, output_folder)

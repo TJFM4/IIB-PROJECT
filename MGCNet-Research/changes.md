@@ -5,3 +5,7 @@ split_dataset.py and stastic.py are the author's original files in the preproces
 
 These .npz files were saved to afdb_dataset/data. 
 
+### preprocess/stastic.py
+The only change required for this file are the input (.npz data) and output (label_counts.json) paths. 
+
+After running stastic.py with this change, I compared my label_counts.json with the author's original. The values differed quite significantly for certain recordings. 
