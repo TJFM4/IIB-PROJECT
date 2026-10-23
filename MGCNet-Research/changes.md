@@ -12,7 +12,7 @@ After running stastic.py with this change, I compared my label_counts.json with 
 
 From the MGCNet paper, they describe using the method of Zhao et al. to eliminate segments which are too noisy from the training data. This must be implemented into raw_to_npz_converter.ipynb. 
 
-Despite these changes being implemented, the label_counts.json still had significant discrepancies in values between the author's version and mine. This element of the author's preprocessing is not available in the repository. As such, I will move forward without the same exact data. We will return to this problem should we identify it leads to notable variations in performance. 
+I was unable to replicate the exact segment counts in the author's original repository using the approach described in their paper. However, I was able to find their real training data on a Baidu download, which is now in BGM_GitHub/afdb_dataset. 
 
 ### preprocess/split_dataset.py
 The only changes required for this file are the input (label_counts.json) and output (fold_1.json - fold_5.json) paths. 
