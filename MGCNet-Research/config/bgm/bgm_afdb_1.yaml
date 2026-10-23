@@ -4,18 +4,18 @@ title:
 # 数据集配置
 dataset:
   train:
-    split_dir: "./preprocess/data_split/bihaf"
-    data_dir: "../BGM_GitHub/afdb_dataset/data"
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/bihaf"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/afdb_dataset/data"
     split: "train"
     fold: 1
   val:
-    split_dir: "./preprocess/data_split/cpsc2021"
-    data_dir: "/home/oyxq/PythonProjects/dataset/CPSC2021/data"
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/cpsc2021"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/cpsc2021_dataset/data"
     split: "val"
     fold: 1
   test:
-    split_dir: "./preprocess/data_split/bihaf"
-    data_dir: "../BGM_GitHub/afdb_dataset/data"
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/bihaf"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/afdb_dataset/data"
     split: "val"
     fold: 1
 
