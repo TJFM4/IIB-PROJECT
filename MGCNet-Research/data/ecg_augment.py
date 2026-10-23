@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class ECGAugment:
 
     def __init__(self, # Parameters for data augmentation

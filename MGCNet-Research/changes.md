@@ -23,7 +23,11 @@ The only changes required for this file are the input (label_counts.json) and ou
 Using Claude, I used the **BGM_GitHub/preprocess** files to generate the CPSC2021's .npz files for the validation set. The original CPSC2021 data is located in **datasets/CPSC2021** and the .npz files are in **BGM_GitHub/cpsc2021_dataset/data**. 
 
 ### MGCNet-Research/config/bgm/bgm_afdb_1.yaml
-I updated the training, validation, and test paths to reflect changes to the repository. 
+I updated the training, validation, and test paths to reflect changes to the repository. I also changed the device used to "mcs" to run the training locally on my computer. 
 
-
+### MGCNet-Research/train.py
+I updated the code here to adopt a few changes: 
+- Measure the time required for the training run
+- Using the **max_batches** parameter, break the loop for a smaller training run (e.g. a single batch smoke test). 
+- Update the training and validation ratios to adapt to the number of batches used. 
 
