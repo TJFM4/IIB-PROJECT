@@ -56,7 +56,7 @@ training:
   batch_size: 128
   shuffle: true
   seed: 3407
-  device: "cuda"              # auto, cuda, cpu
+  device: "mps"                 # auto, cuda, cpu
 
 # 优化器配置
 optimizer:

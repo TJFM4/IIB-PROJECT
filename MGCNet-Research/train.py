@@ -145,8 +145,11 @@ def get_dataloader(config, is_train=True):
     return loader
 
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config):
+def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config, max_batches = None):
     """Model Training"""
+
+    start = time.perf_counter()
+
     best_accuracy = 0.0
     num_epochs = config['training']['num_epochs']
     save_dir = config['logging']['checkpoint_dir']
@@ -166,8 +169,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         correct_preds = 0
         total_preds = 0
 
+        batch_count_train = 0
+
         with tqdm(train_loader, desc=f'Epoch {epoch + 1}/{num_epochs}', unit='batch') as t:
-            for ecgs,imgs, labels in t:
+            for batch_idx, (ecgs,imgs, labels) in enumerate(t):
+                if max_batches is not None and batch_idx >= max_batches:
+                    break
+
+                batch_count_train += 1
+
                 ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
 
                 optimizer.zero_grad()
@@ -185,7 +195,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 t.set_postfix(loss=running_loss / (t.n + 1), accuracy=accuracy)
 
         # Epoch Summary
-        epoch_loss = running_loss / len(train_loader)
+        epoch_loss = running_loss / batch_count_train
         epoch_accuracy = 100 * correct_preds / total_preds
 
         # Validation Performance
@@ -193,8 +203,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         val_loss = 0.0
         val_correct = 0
         val_total = 0
+
+        batch_count_val = 0
+
         with torch.no_grad(): # torch.no_grad() turns off gradient tracking, saving memory and time
-            for ecgs,imgs, labels in val_loader:
+            for batch_idx, (ecgs,imgs, labels) in enumerate(val_loader):
+                if max_batches is not None and batch_idx >= max_batches:
+                    break
+                batch_count_val += 1
                 ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
                 outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
                 loss = criterion(outputs, labels) + 0.01*total_scl
@@ -204,7 +220,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 val_total += labels.size(0)
 
         val_accuracy = 100 * val_correct / val_total
-        val_loss = val_loss / len(val_loader)
+        val_loss = val_loss / batch_count_val
 
         if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step(val_loss)
@@ -238,7 +254,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 tqdm.write(f"Early stopping triggered after {epoch + 1} epochs.")
                 early_stopping = True # Breaks the loop on the next cycle
 
-    print(f"Training completed. Best validation accuracy: {best_accuracy:.2f}%")
+    stop = time.perf_counter()
+    elapsed = stop - start
+
+    print(f"Training completed in {elapsed}. Best validation accuracy: {best_accuracy:.2f}%")
 
 # Class Weights (Share of each int he dataset)
 def get_class_weights(loader, device):
@@ -268,6 +287,11 @@ def parse_args():
         default='config/resnet18_1d_afdb.yaml',
         help='Path to the config file (YAML)'
     )
+    parser.add_argument(
+        '--max-batches', 
+        type = int,
+        default=None
+    )
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -276,6 +300,9 @@ if __name__ == '__main__':
     # Load the configuration YAML
     config = load_config(args.config)
     print(f"Loaded config from: {args.config}")
+
+    # Max Number of Batches (for a smoke run)
+    max_batches = args.max_batches
 
     # Set the seeds
     seed = config['training']['seed']
@@ -316,6 +343,6 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir)
 
     # Train the Model
-    train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config)
+    train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config, max_batches)
 
     writer.close() # Closes the TensorBoard file
