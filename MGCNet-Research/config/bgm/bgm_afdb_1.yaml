@@ -5,7 +5,7 @@ title:
 dataset:
   train:
     split_dir: "./preprocess/data_split/bihaf"
-    data_dir: "/home/oyxq/PythonProjects/dataset/MIT-BIH-AF/data"
+    data_dir: "../BGM_GitHub/afdb_dataset/data"
     split: "train"
     fold: 1
   val:
@@ -15,7 +15,7 @@ dataset:
     fold: 1
   test:
     split_dir: "./preprocess/data_split/bihaf"
-    data_dir: "/home/oyxq/PythonProjects/dataset/MIT-BIH-AF/data"
+    data_dir: "../BGM_GitHub/afdb_dataset/data"
     split: "val"
     fold: 1
 

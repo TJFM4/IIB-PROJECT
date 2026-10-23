@@ -17,4 +17,8 @@ I was unable to replicate the exact segment counts in the author's original repo
 ### preprocess/split_dataset.py
 The only changes required for this file are the input (label_counts.json) and output (fold_1.json - fold_5.json) paths. 
 
+**The preprocess sub-folder is rendered useless by the arrival of the BGM_GitHub download which includes the author's original folds.**
+
+
+
 
