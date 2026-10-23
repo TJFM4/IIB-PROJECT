@@ -26,7 +26,6 @@ def set_seed(seed):
 
 # Load the YAML configuration file
 def load_config(config_path="config.yaml"):
-    """加载 YAML 配置文件"""
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     return config
