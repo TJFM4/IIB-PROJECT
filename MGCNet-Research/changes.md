@@ -37,7 +37,8 @@ This file applies, amongst other augmention, a vertical flip and time warp to th
 ### Training Run 
 To run the training:
 cd "/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research"
-caffeinate -i ../.venv/bin/python train.py --config config/bgm/bgm_afdb_1.yaml 2>&1 | tee train_bgm_afdb_1.log
+caffeinate -i ../.venv/bin/python train.py --config config/bgm/bgm_afdb_2.yaml 2>&1 | tee train_bgm_afdb_2.log
+
 
 To view the training's progress, paste the following into a separate terminal and then open http://localhost:6006. 
 ../.venv/bin/tensorboard --logdir "../documentation/runs"
