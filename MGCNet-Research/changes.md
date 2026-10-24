@@ -40,4 +40,4 @@ cd "/Users/tristanmartin/Desktop/IIB PROJECT/MGCNet-Research"
 caffeinate -i ../.venv/bin/python train.py --config config/bgm/bgm_afdb_1.yaml 2>&1 | tee train_bgm_afdb_1.log
 
 To view the training's progress, paste the following into a separate terminal and then open http://localhost:6006. 
-../.venv/bin/tensorboard --logdir runs
+../.venv/bin/tensorboard --logdir "../documentation/runs"

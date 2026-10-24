@@ -74,6 +74,6 @@ scheduler:
 
 # 日志与保存
 logging:
-  tensorboard_dir: "./runs"
-  checkpoint_dir: "./checkpoint"
-  result_dir: "./results"
+  tensorboard_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/runs"
+  checkpoint_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/checkpoint"
+  result_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/results"
