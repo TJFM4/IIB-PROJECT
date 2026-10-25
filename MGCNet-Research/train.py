@@ -152,6 +152,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     best_accuracy = 0.0
     num_epochs = config['training']['num_epochs']
     save_dir = config['logging']['checkpoint_dir']
+    lam = config['training'].get('scl_weight', 0.01)
     os.makedirs(save_dir, exist_ok=True)
 
     patience = config['training'].get('patience', 10) # Early stop patience
@@ -181,7 +182,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
                 optimizer.zero_grad()
                 outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
-                loss = criterion(outputs, labels) + 0.01*total_scl # Combined Loss Function
+                loss = criterion(outputs, labels) + lam * total_scl # Combined Loss Function
                 loss.backward() # Backwards pass through the network
                 optimizer.step() # Gradient step defined by the optimizer
 

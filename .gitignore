@@ -7,3 +7,4 @@ checkpoint/
 runs/
 results/
 *.log
+data_phys/
