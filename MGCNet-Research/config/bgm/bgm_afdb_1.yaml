@@ -1,7 +1,7 @@
 # config.yaml
 title:
   bgm_afdb_1
-# 数据集配置
+
 dataset:
   train:
     split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/bihaf"
@@ -19,7 +19,6 @@ dataset:
     split: "val"
     fold: 1
 
-# 数据增强配置
 augmentation:
   train:
     target_fs: 250
@@ -43,13 +42,11 @@ augmentation:
     prob: 0.0
     norm_type: "zscore"
 
-# 模型配置
 model:
   name: "bgm"
   num_classes: 2
   in_channels: 1
 
-# 训练配置
 training:
   num_epochs: 25
   patience: 10
@@ -58,21 +55,18 @@ training:
   seed: 3407
   device: "mps"                 # auto, cuda, cpu
 
-# 优化器配置
 optimizer:
   type: "Adam"
   params:
     lr: 0.001
     weight_decay: 0.0001
 
-# 学习率调度器
 scheduler:
   type: InverseTimeLR
   params:
-    decay_rate: 0.0001           # 衰减系数，可调
-    # last_epoch: -1             # 可选，默认 -1
+    decay_rate: 0.0001           
+    # last_epoch: -1             
 
-# 日志与保存
 logging:
   tensorboard_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/runs"
   checkpoint_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/checkpoint"
