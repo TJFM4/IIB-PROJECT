@@ -213,7 +213,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 batch_count_val += 1
                 ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
                 outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
-                loss = criterion(outputs, labels) + 0.01*total_scl
+                loss = criterion(outputs, labels) + lam * total_scl
                 val_loss += loss.item()
                 _, predicted = torch.max(outputs, 1)
                 val_correct += (predicted == labels).sum().item()
