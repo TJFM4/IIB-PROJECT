@@ -1,4 +1,4 @@
-# IIB Project: Investigating the Applicability of State-of-the-Art Deep Learning ECG Classification Models to the Case of Single-Lead Handheld Device Screening of Atrial Fibrillation
+# IIB Project: Investigating the Generalization of State-of-the-Art Deep Learning ECG Classification Models to the Case of Single-Lead Handheld Device Screening of Atrial Fibrillation
 While MGCNet and ECG-Mamba-V2 are promising models for the automated classification of ECG data, their performance on lower quality data has yet to be evaluted. Screening for Atrial Fibrillation (AF) remains an ongoing challenge as the arrhythmia's prevalence continues to rise amongst today's aging population. Using single-lead handheld devices like AliveCor's KardiaMobile, the hope is that large populations of at-risk individuals could be screened for AF using only a few single-lead ECGs. To this end, this research project investigates how state-of-the-art classification models can be improved in order to handle the noisy, artefact-ridden data provided by cheap, reusable devices for single-lead ECG data collection.
 
 ## Overviw
