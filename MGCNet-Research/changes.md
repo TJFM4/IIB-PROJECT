@@ -31,7 +31,7 @@ I updated the code here to adopt a few changes:
 - Using the **max_batches** parameter, break the loop for a smaller training run (e.g. a single batch smoke test). 
 - Update the training and validation ratios to adapt to the number of batches used. 
 
-### MGNet-Research/data/ecg_augment.py
+### MGCNet-Research/data/ecg_augment.py
 This file applies, amongst other augmention, a vertical flip and time warp to the data. These are not mentioned in the paper but are used in the author's original repository, so they are kept for now. 
 
 ### Training Run 
@@ -42,3 +42,6 @@ caffeinate -i ../.venv/bin/python train.py --config config/bgm/bgm_afdb_2.yaml 2
 
 To view the training's progress, paste the following into a separate terminal and then open http://localhost:6006. 
 ../.venv/bin/tensorboard --logdir "../documentation/runs"
+
+
+I reran training runs in the author's BGM_GitHub repository. However, it seems they used lr = 0.0001 for folds 4 and 5, while I use lr = 0.001 across all folds. 
