@@ -1,0 +1,74 @@
+# config.yaml
+title:
+  bgm_afdb_4_authcopy
+
+dataset:
+  train:
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/bihaf"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/afdb_dataset/data"
+    split: "train"
+    fold: 4
+  val:
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/cpsc2021"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/cpsc2021_dataset/data"
+    split: "val"
+    fold: 4
+  test:
+    split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/preprocess/data_split/bihaf"
+    data_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/afdb_dataset/data"
+    split: "val"
+    fold: 4
+
+augmentation:
+  train:
+    target_fs: 250
+    original_fs: 250
+    prob: 0.5
+    noise_std: 0.2
+    time_warp_sigma: 5
+    time_mask_ratio: 0.1
+    amp_scale_range: 0.5
+    zoom_in_ratio_range: 0.2
+    zoom_out_expand_range: 0.2
+    norm_type: "zscore"
+  val:
+    target_fs: 250
+    original_fs: 200
+    prob: 0.0
+    norm_type: "zscore"
+  test:
+    target_fs: 250
+    original_fs: 250
+    prob: 0.0
+    norm_type: "zscore"
+
+model:
+  name: "bgm"
+  num_classes: 2
+  in_channels: 1
+
+training:
+  num_epochs: 25
+  patience: 10
+  batch_size: 128
+  shuffle: true
+  seed: 3407
+  device: "mps"              # auto, cuda, cpu
+  scl_weight: 0.01
+
+optimizer:
+  type: "Adam"
+  params:
+    lr: 0.001
+    weight_decay: 0.0001
+
+scheduler:
+  type: InverseTimeLR
+  params:
+    decay_rate: 0.0001           
+    # last_epoch: -1             
+
+logging:
+  tensorboard_dir: "./runs"
+  checkpoint_dir: "./checkpoint"
+  result_dir: "./results"
