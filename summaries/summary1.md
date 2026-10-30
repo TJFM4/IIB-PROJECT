@@ -116,3 +116,36 @@ Accuracy without record 04936 (fold 4): mine 0.9743, author 0.9583. Accuracy wit
 - Fold 4's errors are mostly from record 04936 (802 missed AF segments; the author's model misses 8). On the other three fold-4 records, my model makes fewer errors than the author's (105 vs 170). Fold 5's errors come from 07162 (512 missed AF segments) and 04908 (262 N segments predicted as AF).
 - Folds 4 and 5 ran all 25 epochs without early stopping. The saved checkpoints are from epoch 18 (fold 4, CPSC validation accuracy 89.6%) and epoch 19 (fold 5, 94.7%). Fold 4's validation accuracy ranged from 71% to 90% across epochs.
 - PhysioNet 2017 used all windows, with no quality filtering. The data is single-lead, 300 Hz, resampled to 250 Hz, and the leftover tail of each record is dropped. 11 records shorter than 10 s gave no windows.
+
+## 6. Author's repo runs (authcopy)
+
+Trained and tested from `BGM_GitHub/` with the author's `train.py` and `test.py`, run from the command line. The only changes are local data paths, `device: "mps"`, and the SCL term re-enabled through `scl_weight: 0.01` (the author's `train.py` has it commented out). All folds use lr 1e-3. Configs are `BGM_GitHub/config/bgm/bgm_afdb_<fold>.yaml`; outputs are in `BGM_GitHub/results/bgm_afdb_<fold>_authcopy/`.
+
+| Trial | Model | Test set | Segments (N / AF) | Accuracy | AUC | F1 (AF) | Precision (AF) | Recall / Sensitivity (AF) | Specificity (AF +ve) | Specificity (avg) | Loss | Epochs run | Best CPSC val (epoch) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Fold 1 | Author's repo (CE + 0.01·SCL) | AFDB fold 1 | 12,186 (7,606 / 4,580) | 0.9866 | 0.9990 | 0.9821 | 0.9891 | 0.9751 | 0.9936 | 0.9843 | 0.0353 | 19 | 91.9% (9) |
+| Fold 2 | Author's repo (CE + 0.01·SCL) | AFDB fold 2 | 14,216 (8,929 / 5,287) | 0.8644 | 0.8956 | 0.8443 | 0.7367 | 0.9887 | 0.7908 | 0.8897 | 0.6178 | 25 | 93.7% (25) |
+| Fold 3 | Author's repo (CE + 0.01·SCL) | AFDB fold 3 | 12,774 (7,846 / 4,928) | 0.8662 | 0.9811 | 0.7941 | 0.9775 | 0.6686 | 0.9903 | 0.8295 | 0.3909 | 25 | 91.5% (21) |
+| Fold 4 | Author's repo (CE + 0.01·SCL) | AFDB fold 4 | 7,295 (4,470 / 2,825) | 0.9335 | 0.9862 | 0.9099 | 0.9577 | 0.8665 | 0.9758 | 0.9212 | 0.1873 | 17 | 86.9% (7) |
+| Fold 5 | Author's repo (CE + 0.01·SCL) | AFDB fold 5 | 12,300 (7,867 / 4,433) | 0.8737 | 0.9988 | 0.7875 | 1.0000 | 0.6494 | 1.0000 | 0.8247 | 0.4358 | 20 | 94.9% (10) |
+
+- Folds 1–3 are bit-identical to "Mine" in section 1 (same labels, features and predictions). My `MGCNet-Research` pipeline is therefore equivalent to the author's repo with SCL enabled, and MPS training is deterministic across runs.
+- Folds 4 and 5 differ from "Mine" only in lr (1e-3 here, 1e-4 in section 1). Fold 4 improves (0.8748 → 0.9335); fold 5 gets worse (0.9359 → 0.8737). Fold 5 has no false positives but misses 35% of AF segments, while AUC stays at 0.9988.
+- Folds 1, 4 and 5 stopped early (patience 10).
+
+## 7. Five-fold averages (paper method)
+
+Format as in the paper's Table 3: mean (standard deviation) over the five AFDB folds. The paper uses the population standard deviation (divide by 5, not 4) and the true specificity (recall on N, "Specificity (AF +ve)" above), not the `test.py` average. Averaging the author's saved per-fold results this way reproduces the paper's MGCNet AFDB row exactly, to all 4 decimal places.
+
+| Run | Accuracy | AUC | F1 (AF) | Precision (AF) | Recall / Sensitivity (AF) | Specificity |
+|---|---|---|---|---|---|---|
+| Paper, Table 3 (MGCNet, AFDB) | 0.9878 (0.0094) | 0.9987 (0.0013) | 0.9841 (0.0120) | 0.9856 (0.0219) | 0.9830 (0.0170) | 0.9906 (0.0147) |
+| Author's saved results | 0.9878 (0.0094) | 0.9987 (0.0013) | 0.9841 (0.0120) | 0.9856 (0.0219) | 0.9830 (0.0170) | 0.9906 (0.0147) |
+| Mine (lr 1e-3 folds 1–3, 1e-4 folds 4–5) | 0.9056 (0.0483) | 0.9679 (0.0371) | 0.8689 (0.0684) | 0.9180 (0.0925) | 0.8457 (0.1319) | 0.9435 (0.0770) |
+| Author's repo, authcopy (lr 1e-3 all folds) | 0.9049 (0.0482) | 0.9722 (0.0389) | 0.8636 (0.0737) | 0.9322 (0.0987) | 0.8297 (0.1457) | 0.9501 (0.0800) |
+
+Gap to the paper (authcopy − paper): accuracy −0.083, AUC −0.027, F1 −0.121, precision −0.053, recall −0.153, specificity −0.041.
+
+- Both of my runs are about 8 points below the paper on accuracy, with standard deviations about 5× larger. The two lr settings give almost the same average (0.9056 vs 0.9049): fold 4's gain cancels fold 5's loss.
+- Recall (AF) is the weakest metric and the most variable (std 0.13–0.15). It is driven by missed AF in records 08215 (fold 3), 04936 (fold 4, lr 1e-4) and 07162 (fold 5). Fold 2's errors go the other way: false positives on 06995.
+- AUC is much closer to the paper than accuracy, except on fold 2 (0.8956). On the other folds the AF and N scores are mostly well separated, but the 0.5 threshold falls in the wrong place for some records.
