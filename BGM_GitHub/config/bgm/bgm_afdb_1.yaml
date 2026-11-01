@@ -69,6 +69,6 @@ scheduler:
     # last_epoch: -1             
 
 logging:
-  tensorboard_dir: "./runs"
-  checkpoint_dir: "./checkpoint"
-  result_dir: "./results"
+  tensorboard_dir: "./new_runs/runs"
+  checkpoint_dir: "./new_runs/checkpoint"
+  result_dir: "./new_runs/results"

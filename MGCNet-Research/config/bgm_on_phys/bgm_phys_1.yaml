@@ -67,6 +67,6 @@ scheduler:
     # last_epoch: -1             
 
 logging:
-  tensorboard_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/runs"
+  tensorboard_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/new_runs/runs"
   checkpoint_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/checkpoint"
-  result_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/documentation/results/author1_on_physionet"
+  result_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/BGM_GitHub/new_runs/results/author1_on_physionet"
