@@ -23,7 +23,8 @@ class ECGAugment:
                  amp_scale_range=0.4,  # 幅度缩放范围：最低和最高缩放因子
                  zoom_in_ratio_range=0.5,  # time_zoom_in 截取比例范围
                  zoom_out_expand_range=0.5,  # time_zoom_out 扩展比例范围
-                 norm_type='zscore'):
+                 norm_type='zscore',
+                 vertical_flip = True):
         """
         初始化
 
@@ -46,6 +47,7 @@ class ECGAugment:
         self.zoom_in_ratio_range = zoom_in_ratio_range
         self.zoom_out_expand_range = zoom_out_expand_range
         self.norm_type = norm_type
+        self.vertical_flip = vertical_flip
 
         # 计算重采样比例
         self.resample_ratio = target_fs / original_fs
@@ -70,7 +72,7 @@ class ECGAugment:
         if np.random.rand() < self.prob:
             x = self._amplitude_scaling(x)
 
-        if np.random.rand() < self.prob:
+        if self.vertical_flip and np.random.rand() < self.prob:
             x = self._vertical_flip(x)  # <-- 新增垂直翻转
 
         if np.random.rand() < self.prob:

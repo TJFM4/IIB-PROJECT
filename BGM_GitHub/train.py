@@ -148,6 +148,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     best_accuracy = 0.0
     num_epochs = config['training']['num_epochs']
     save_dir = config['logging']['checkpoint_dir']
+    save_path = os.path.join(save_dir, f"{config['title']}.pth")
     os.makedirs(save_dir, exist_ok=True)
 
     patience = config['training'].get('patience', 10)  # 等待多少个 epoch 没提升就停止
@@ -155,6 +156,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     early_stopping = False
 
     lam = config['training'].get('scl_weight', 0.0)
+
+    selection = config['training'].get('selection')
+
+    # 无验证集时的配置检查
+    if val_loader is None and selection != "last":
+        raise ValueError("Best-epoch selection needs a validation set: add dataset.val or set training.selection: 'last'")
+    if val_loader is None and isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+        raise ValueError("ReduceLROnPlateau needs a validation loss: add dataset.val or use another scheduler")
 
     for epoch in range(num_epochs):
 
@@ -190,23 +199,24 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         epoch_accuracy = 100 * correct_preds / total_preds
 
         # 验证
-        model.eval()
-        val_loss = 0.0
-        val_correct = 0
-        val_total = 0
-        with torch.no_grad():
-            for ecgs,imgs, labels in val_loader:
-                ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
-                outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
-                loss = criterion(outputs, labels) + lam*total_scl
-                # loss = criterion(outputs, labels)
-                val_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)
-                val_correct += (predicted == labels).sum().item()
-                val_total += labels.size(0)
+        if val_loader is not None:
+            model.eval()
+            val_loss = 0.0
+            val_correct = 0
+            val_total = 0
+            with torch.no_grad():
+                for ecgs,imgs, labels in val_loader:
+                    ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
+                    outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
+                    loss = criterion(outputs, labels) + lam*total_scl
+                    # loss = criterion(outputs, labels)
+                    val_loss += loss.item()
+                    _, predicted = torch.max(outputs, 1)
+                    val_correct += (predicted == labels).sum().item()
+                    val_total += labels.size(0)
 
-        val_accuracy = 100 * val_correct / val_total
-        val_loss = val_loss / len(val_loader)
+            val_accuracy = 100 * val_correct / val_total
+            val_loss = val_loss / len(val_loader)
 
         # 更新学习率
         if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -216,32 +226,39 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         # 打印日志
         tqdm.write(f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.2f}%')
-        tqdm.write(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%')
+        if val_loader is not None:
+            tqdm.write(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%')
 
         # TensorBoard 记录
         writer.add_scalar('Loss/train', epoch_loss, epoch + 1)
         writer.add_scalar('Accuracy/train', epoch_accuracy, epoch + 1)
-        writer.add_scalar('Loss/valid', val_loss, epoch + 1)
-        writer.add_scalar('Accuracy/valid', val_accuracy, epoch + 1)
+        if val_loader is not None: 
+            writer.add_scalar('Loss/valid', val_loss, epoch + 1)
+            writer.add_scalar('Accuracy/valid', val_accuracy, epoch + 1)
         writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch + 1)
 
         # 保存最优模型
-        if val_accuracy > best_accuracy:
-            best_accuracy = val_accuracy
-            save_path = os.path.join(save_dir, f"{config['title']}.pth")
-            torch.save(model.state_dict(), save_path)
-            tqdm.write(f"Best model saved: {save_path}, Accuracy: {best_accuracy:.2f}%")
-            early_stop_counter = 0  # 重置计数器
-        else:
-            early_stop_counter += 1
-            tqdm.write(f"Early stopping counter: {early_stop_counter}/{patience}")
+        if selection != "last":
+            if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
+                torch.save(model.state_dict(), save_path)
+                tqdm.write(f"Best model saved: {save_path}, Accuracy: {best_accuracy:.2f}%")
+                early_stop_counter = 0  # 重置计数器
+            else:
+                early_stop_counter += 1
+                tqdm.write(f"Early stopping counter: {early_stop_counter}/{patience}")
 
-            # if early_stop_counter >= patience and epoch+1 >= 20:
-            if early_stop_counter >= patience:
-                tqdm.write(f"Early stopping triggered after {epoch + 1} epochs.")
-                early_stopping = True
+                # if early_stop_counter >= patience and epoch+1 >= 20:
+                if early_stop_counter >= patience:
+                    tqdm.write(f"Early stopping triggered after {epoch + 1} epochs.")
+                    early_stopping = True
 
-    print(f"Training completed. Best validation accuracy: {best_accuracy:.2f}%")
+    if selection == 'last':
+        torch.save(model.state_dict(), save_path)
+        print("Training completed.")
+
+    else:
+        print(f"Training completed. Best validation accuracy: {best_accuracy:.2f}%")
 
 # 创建损失函数前先计算类别权重
 def get_class_weights(loader, device):
@@ -296,10 +313,14 @@ if __name__ == '__main__':
 
     # 创建数据加载器
     train_loader = get_dataloader(config, is_train=True)
-    val_loader = get_dataloader(config, is_train=False)
+    if 'val' in config['dataset']:
+        val_loader = get_dataloader(config, is_train=False)
+        print(f'Validation set size: {len(val_loader.dataset)}')
+    else:
+        val_loader = None 
 
     print(f'Train set size: {len(train_loader.dataset)}')
-    print(f'Validation set size: {len(val_loader.dataset)}')
+    
 
     # 创建模型
     model = get_model(config)

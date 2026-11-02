@@ -50,8 +50,8 @@ Details: `MGCNet-Research/MDs/AFDB_data_audit.md`.
 | `bgm_afdb_2_authcopy` | 30 Oct | authcopy | corrected | 1e-3 | 0.01 | 25 | 91.56@19 | 0.8153 | 0.8890 | 0.7623 | 0.7309 | 0.7965 | 0.8264 |
 | `bgm_afdb_3_authcopy` | 30 Oct | authcopy | corrected | 1e-3 | 0.01 | 21 | 87.48@11 | 0.8278 | 0.9704 | 0.7161 | 0.9833 | 0.5631 | 0.9940 |
 | `bgm_afdb_4_authcopy` | 30 Oct | authcopy | corrected | 1e-3 | 0.01 | 25 | 88.27@21 | 0.9161 | 0.9805 | 0.8825 | 0.9639 | 0.8138 | 0.9808 |
-| `bgm_afdb_1_authcopy` | in progress | authcopy | corrected | 1e-3 | 0.01 | | | | | | | | |
-| `bgm_afdb_5_authcopy` | in progress | authcopy | corrected | 1e-3 | 0.01 | | | | | | | | |
+| `bgm_afdb_1_authcopy` | 2 Nov | authcopy | corrected | 1e-3 | 0.01 | 18 | 91.74@8 | 0.9928 | 0.9998 | 0.9904 | 0.9898 | 0.9910 | 0.9938 |
+| `bgm_afdb_5_authcopy` | 2 Nov | authcopy | corrected | 1e-3 | 0.01 | 22 | 94.74@12 | 0.8993 | 0.9993 | 0.8378 | 0.9994 | 0.7212 | 0.9997 |
 
 Author's saved results, for reference (`BGM_GitHub/results/bgm_afdb_N`): accuracy 0.9989, 0.9817, 0.9858, 0.9748, 0.9980.
 
@@ -60,6 +60,8 @@ Notes:
 - Folds 4–5 "Mine" used lr 1e-4, the value in the author's last logged fold-4/5 runs. Authcopy uses 1e-3 for all folds, as in the paper.
 - `_authcopy_oldcpsc` folds 2–4 checkpoints were overwritten by the corrected-CPSC reruns. Only their results and TensorBoard logs survive.
 - Old fold 1 and 5 authcopy checkpoints are kept as `bgm_afdb_{1,5}_authcopy_oldcpsc.pth`.
+- `bgm_afdb_1_authcopy` vs the author's 17 Dec 03:25 run (the one that produced `bgm_afdb_1.pth`), same corrected CPSC fold-1 val set (21,320): mine peaks at 91.74% @ epoch 8 and stops at 18 epochs; the author's peaks at 93.05% @ epoch 12 and stops at 22. The curves differ from epoch 1 (77.28% vs 79.25%), so the gap comes from MPS-vs-CUDA dropout RNG / floating point and library versions, not from data. Test accuracy 0.9928 vs the author's 0.9989.
+- `bgm_afdb_5_authcopy`: AUC 0.9993 but recall 0.72. The ranking is near-perfect and the default 0.5 threshold is too conservative for AF on this fold (same pattern as `_oldcpsc` fold 5).
 
 ## Evaluations without training
 
@@ -70,6 +72,20 @@ Notes:
 | `check_author1_on_cpsc1` | 31 Oct | Author's `bgm_afdb_1.pth` | Corrected CPSC2021 fold-1 val (21,320) | 0.9305 | 0.9819 | 0.9070 | 0.8987 | 0.9153 | 0.9394 | Identify the run that made the checkpoint |
 
 `check_author1_on_cpsc1` equals the author's 17 Dec 03:25 log at its best epoch (12, 93.049%). The checkpoint therefore came from the January pipeline (CPSC validation, InverseTimeLR, lr 1e-3, SCL 0.01, 128×128 spectrograms).
+
+## Error analysis
+
+2 Nov: errors per record for the corrected-CPSC `_authcopy` folds. Rows of `test_predictions.csv` are mapped to records by concatenating `fold_N.json["val"]` in order, which is the loader's order with `shuffle=False`. Worst record per fold:
+
+| Fold | Record | Errors (share of fold) | Error rate | Type | Notes |
+|---|---|---|---|---|---|
+| 1 | 08378 | 42 / 88 (48%) | 2.6% | 32 FN, 10 FP | Scattered, borderline (median P(AF) 0.41) |
+| 2 | 06995 | 1,437 / 2,626 (55%) | 39% | 1,413 FP | Long confident runs (median P(AF) 0.96). 07859 adds 1,036 FN (39%) |
+| 3 | 08215 | 2,104 / 2,200 (96%) | 58% | all FN | Long confident runs (median P(AF) 0.03). ECG channels swapped |
+| 4 | 04936 | 529 / 612 (86%) | 16% | 522 FN | Shorter runs (≤20 windows) |
+| 5 | 07162 | 1,218 / 1,238 (98%) | 54% | all FN | 100% AF record, errors spread in short runs |
+
+Records with swapped channels (ch0 = ECG2): 07859, 08215.
 
 ## Aborted runs
 
@@ -83,4 +99,4 @@ Notes:
 |---|---|
 | `logs/authcopy_nk0212_folds234.log` | Authcopy folds 2–4, corrected CPSC (30 Oct) |
 | `logs/authexact_folds12345.log` | Aborted authexact fold 1 (30–31 Oct) |
-| `logs/authcopy_nk0212_folds15.log` | Authcopy folds 1 and 5, corrected CPSC (started 1 Nov 22:43) |
+| `logs/authcopy_nk0212_folds15.log` | Authcopy folds 1 and 5, corrected CPSC (1 Nov 22:43 – 2 Nov 03:59) |
