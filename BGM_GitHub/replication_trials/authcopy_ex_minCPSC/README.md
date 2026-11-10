@@ -17,7 +17,7 @@ These differ from the `_afdb_only` runs, which also have no validation but use l
 From `BGM_GitHub/`, plugged in:
 
 ```bash
-bash authcopy_ex_minCPSC/run_folds.sh      # folds 4 and 5, about 5 h
+bash replication_trials/authcopy_ex_minCPSC/run_folds.sh      # folds 4 and 5, about 5 h
 ```
 
 Log: `new_runs/logs/authcopy_ex_minCPSC_folds45.log`. Add both runs to `new_runs/runs.md`.

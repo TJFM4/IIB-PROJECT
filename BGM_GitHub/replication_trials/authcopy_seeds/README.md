@@ -10,6 +10,6 @@ The configs are the `_authcopy` fold 4 config from before commit e6ff752 (CPSC20
 | `bgm_afdb_4_authcopy_seed2.yaml` | 2 |
 | `bgm_afdb_4_authcopy_seed3.yaml` | 3 |
 
-Run: `bash authcopy_seeds/run_fold4_seeds.sh` from `BGM_GitHub/`. Takes about 2–2.5 h per seed on the Mac.
+Run: `bash replication_trials/authcopy_seeds/run_fold4_seeds.sh` from `BGM_GitHub/`. Takes about 2–2.5 h per seed on the Mac.
 
 Outputs go to the usual places: `new_runs/checkpoint/`, `new_runs/results/`, `new_runs/runs/`, and the log `new_runs/logs/authcopy_fold4_seeds23.log`. Add both runs to `new_runs/runs.md` when done.

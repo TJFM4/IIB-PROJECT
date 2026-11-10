@@ -32,8 +32,8 @@ Folds 1–3 are the same configs as `bgm_afdb_{1,2,3}_authcopy`, so they mainly 
 From `BGM_GitHub/`:
 
 ```bash
-bash authcopy_exact/run_folds.sh          # all five folds, about 12 h
-bash authcopy_exact/run_folds.sh 4 5      # only the new configs, about 5 h
+bash replication_trials/authcopy_exact/run_folds.sh          # all five folds, about 12 h
+bash replication_trials/authcopy_exact/run_folds.sh 4 5      # only the new configs, about 5 h
 ```
 
 Plug the laptop in first: on battery, MPS training was about 3× slower and the 4 Nov run died. Log: `new_runs/logs/authcopy_exact_folds<folds>.log`. Add every run to `new_runs/runs.md`.
