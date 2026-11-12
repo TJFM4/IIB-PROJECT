@@ -34,7 +34,7 @@ augmentation:
     vertical_flip: false
   val:
     target_fs: 250
-    original_fs: 200
+    original_fs: 250
     prob: 0.0
     norm_type: "zscore"
   test:
@@ -71,6 +71,6 @@ scheduler:
     # last_epoch: -1             
 
 logging:
-  tensorboard_dir: "./new_runs/runs"
-  checkpoint_dir: "./new_runs/checkpoint"
-  result_dir: "./new_runs/results"
+  tensorboard_dir: "./icentia_runs/runs"
+  checkpoint_dir: "./icentia_runs/checkpoints"
+  result_dir: "./icentia_runs/results"
