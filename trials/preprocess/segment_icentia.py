@@ -86,7 +86,13 @@ def process_patient(job):
 
     rng = np.random.default_rng([seed, int(pid[1:])])
     all_X, all_y, all_seg, all_start = [], [], [], []
-    for base_path in get_segments(patient_dir):
+
+    segments = get_segments(patient_dir)
+    if not segments:
+        raise FileNotFoundError(f'No segment files found in {patient_dir}')
+    for base_path in segments:
+        if not os.path.exists(base_path + '.atr'):
+            continue
         ecg_raw, annotation, fs = read_data(base_path)
         rhythm_labels = build_rhythm_labels(annotation, len(ecg_raw))
         ecg_filtered = ecg_denoise(ecg_raw, fs)

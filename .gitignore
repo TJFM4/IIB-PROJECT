@@ -2,9 +2,8 @@ physionet2017/
 datasets/
 misc/
 afdb_dataset/data/
-checkpoint/
-runs/
-results/
+BGM_GitHub/runs
+BGM_GitHub/new_runs
 *.log
 data_phys/
 BGM_GitHub/afdb_dataset/
