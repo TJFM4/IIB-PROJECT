@@ -48,7 +48,7 @@ def analyze_npz_labels(folder_path, output_folder):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', required = True, help = 'Folder of per-patient .npz files from segment_icentia.py')
-    parser.add_argument('--out', required=True, help='Split folder, e.g. preprocess/data_split/icentia')
+    parser.add_argument('--out', required=True, help='Split folder, e.g. preprocess/data_split/icentia_100')
     args = parser.parse_args()
 
     analyze_npz_labels(args.data, args.out)

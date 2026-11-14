@@ -5,7 +5,7 @@ title:
 dataset:
   test:
     split_dir: "/Users/tristanmartin/Desktop/IIB PROJECT/trials/preprocess/data_split/icentia_zeroshot"
-    data_dir: "/Volumes/seagate_hard/icentia_npz"
+    data_dir: "/Volumes/seagate_hard/icentia_100_npz"
     split: "val"                # --all_val put every patient under "val"
     fold: 1
 
