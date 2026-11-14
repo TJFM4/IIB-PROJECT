@@ -15,3 +15,6 @@ BGM_GitHub/results/**/predictions.npz
 BGM_GitHub/results/**/test_predictions.csv
 __pycache__/
 .DS_Store
+# Large prediction arrays (exceed GitHub 100MB limit)
+**/predictions.npz
+trials/icentia_runs/checkpoints/
