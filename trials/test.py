@@ -203,6 +203,7 @@ def main():
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
         specificity_list.append(specificity)
     avg_specificity = np.mean(specificity_list)
+    specificity_af = specificity_list[1]
 
     # -------------------------------
     # 7. 打印结果
@@ -216,7 +217,8 @@ def main():
     print(f"F1 Score: {f1:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall (Sensitivity): {recall:.4f}")
-    print(f"Specificity (avg): {avg_specificity:.4f}")
+    print(f"Specificity (AF positive): {specificity_af:.4f}")
+    print(f"Balanced accuracy (avg specificity): {avg_specificity:.4f}")
     print("-"*50)
     print("Classification Report:")
     print(classification_report(y_true, y_pred, digits=4))
@@ -265,7 +267,8 @@ def main():
         f.write(f"F1 Score: {f1:.4f}\n")
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
-        f.write(f"Specificity (avg): {avg_specificity:.4f}\n")
+        f.write(f"Specificity (AF positive): {specificity_af:.4f}\n")
+        f.write(f"Balanced accuracy (avg specificity): {avg_specificity:.4f}\n")
         f.write("\nClassification Report:\n")
         f.write(classification_report(y_true, y_pred, digits=4))
 

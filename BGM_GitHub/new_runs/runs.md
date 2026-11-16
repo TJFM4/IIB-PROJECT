@@ -87,6 +87,30 @@ Notes:
 
 Records with swapped channels (ch0 = ECG2): 07859, 08215.
 
+## Polarity (flip) test
+
+16 Nov: each checkpoint re-run on its own AFDB test fold with every window multiplied by −1 (the spectrogram is unchanged by this). No training. Original-polarity accuracy reproduces the saved `metrics.json` for all 11 checkpoints. Output: `results/flip_test/` (`afdb_flip_fold{1..5}.csv` = P(AF) per window for both polarities, `afdb_flip_summary.csv`, `afdb_flip_per_record.csv`).
+
+Flip in training: `_authcopy` and no-suffix runs used the author's `ecg_augment.py`, which flips each training window with probability 0.5. `_afdb_only` runs (3–4 Nov) were trained with `vertical_flip: false` (switch added in commit `e6ff752`), no validation set and `selection: "last"`.
+
+| Checkpoint | Flip in training | Acc | Acc flipped | Spec (N) | Spec flipped | Recall | Recall flipped |
+|---|---|---|---|---|---|---|---|
+| `bgm_afdb_1_afdb_only` | off | 0.9989 | 0.9080 | 0.9989 | 0.8530 | 0.9987 | 0.9993 |
+| `bgm_afdb_1_authcopy` | on | 0.9928 | 0.9932 | 0.9938 | 0.9946 | 0.9910 | 0.9908 |
+| `bgm_afdb_2_afdb_only` | off | 0.9475 | 0.6675 | 0.9231 | 0.4738 | 0.9888 | 0.9945 |
+| `bgm_afdb_2_authcopy` | on | 0.8153 | 0.8538 | 0.8264 | 0.8202 | 0.7965 | 0.9105 |
+| `bgm_afdb_3_afdb_only` | off | 0.9458 | 0.5287 | 0.9216 | 0.6067 | 0.9844 | 0.4044 |
+| `bgm_afdb_3_authcopy` | on | 0.8278 | 0.8439 | 0.9940 | 0.9921 | 0.5631 | 0.6080 |
+| `bgm_afdb_4_afdb_only` | off | 0.8833 | 0.7567 | 0.9680 | 0.7356 | 0.7494 | 0.7901 |
+| `bgm_afdb_4_authcopy` | on | 0.9161 | 0.9279 | 0.9808 | 0.9774 | 0.8138 | 0.8496 |
+| `bgm_afdb_5` | on | 0.9359 | 0.9407 | 0.9666 | 0.9770 | 0.8813 | 0.8764 |
+| `bgm_afdb_5_afdb_only` | off | 0.8441 | 0.7007 | 1.0000 | 0.7788 | 0.5673 | 0.5621 |
+| `bgm_afdb_5_authcopy` | on | 0.8993 | 0.9150 | 0.9997 | 0.9997 | 0.7212 | 0.7645 |
+
+- Checkpoints trained without flipping depend on polarity: accuracy falls by 9 to 42 points when the test windows are flipped. Checkpoints trained with flipping change by at most 4 points.
+- Largest per-record gains from flipping in the flip-trained checkpoints: 07859 (fold 2, recall 0.705 → 0.878), 07162 (fold 5 authcopy, 0.460 → 0.546), 08215 (fold 3, 0.285 → 0.360). The low recall on folds 3 and 5 is therefore not mainly a polarity effect.
+- Same test on Icentia11k for the five zero-shot checkpoints, on a sample of 15,015 windows (up to 150 per class per patient; `results/flip_test/icentia_zeroshot_flip.csv`): flipping does not improve any of them overall. Spec (N) original → flipped: fold 1 `_afdb_only` 0.831 → 0.650, fold 2 `_afdb_only` 0.757 → 0.579, fold 3 `_authcopy` 0.874 → 0.869, fold 4 `_authcopy` 0.807 → 0.851, fold 5 `_afdb_only` 0.857 → 0.742.
+
 ## Aborted runs
 
 | Title | Date | Reason |
