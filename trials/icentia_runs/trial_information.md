@@ -22,3 +22,5 @@ python preprocess/split_dataset.py --split_dir preprocess/data_split/icentia_100
 
 #### icentia_100 - fold 1
 The held-out 20 patients include 2 AF patients, p00016 (207 AF windows) and p00091 (6,654 AF windows). There are also 10,806 N windows in the held-out set. Recall will thus mostly reflect p00091. 
+
+#### icentia_100 - fold 2
