@@ -26,7 +26,7 @@ augmentation:
     zoom_in_ratio_range: 0.2
     zoom_out_expand_range: 0.2
     norm_type: "zscore"
-    vertical_flip: false
+    vertical_flip: true
   test:
     target_fs: 250
     original_fs: 250
