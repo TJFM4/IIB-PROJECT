@@ -73,6 +73,31 @@ Notes:
 
 `check_author1_on_cpsc1` equals the author's 17 Dec 03:25 log at its best epoch (12, 93.049%). The checkpoint therefore came from the January pipeline (CPSC validation, InverseTimeLR, lr 1e-3, SCL 0.01, 128×128 spectrograms).
 
+### Zero-shot AFDB → CPSC2021 (17 Nov)
+
+AFDB-trained checkpoints tested with `test.py` on all 105 corrected CPSC2021 cases (137,010 windows: 89,570 N / 47,440 AF), the same test set as the author's `test_ga.py` cross-dataset results (`BGM_GitHub/results/bgm_afdb_cpsc_N`). Split: `preprocess/data_split/cpsc2021_zeroshot/fold_1.json` (all cases under `val`). Results: `results/afdb_zeroshot_cpsc/<checkpoint>/`, each with the `config.yaml` used; `summary.csv` holds the table below. Log: `logs/afdb_zeroshot_cpsc.log`.
+
+"CPSC val fold" = the CPSC fold used to pick the checkpoint's best epoch during training. Those 21 cases are part of this test set, so only the `_afdb_only` checkpoints (no validation set) are fully zero-shot. "Acc (84)" excludes those 21 cases.
+
+| Checkpoint | CPSC val fold | Acc | AUC | Spec (N) | Recall | Prec | Acc (84) | Author `bgm_afdb_cpsc_N` acc |
+|---|---|---|---|---|---|---|---|---|
+| `bgm_afdb_1_afdb_only` | none | 0.9253 | 0.9693 | 0.9176 | 0.9399 | 0.8580 | | 0.9107 |
+| `bgm_afdb_2_afdb_only` | none | 0.8719 | 0.9400 | 0.8621 | 0.8906 | 0.7737 | | 0.6951 |
+| `bgm_afdb_3_afdb_only` | none | 0.8933 | 0.9399 | 0.8887 | 0.9020 | 0.8111 | | 0.9148 |
+| `bgm_afdb_4_afdb_only` | none | 0.9250 | 0.9716 | 0.8968 | 0.9782 | 0.8339 | | 0.9072 |
+| `bgm_afdb_5_afdb_only` | none | 0.8805 | 0.9459 | 0.9182 | 0.8093 | 0.8397 | | 0.9190 |
+| `bgm_afdb_3_authcopy` | 3 | 0.8936 | 0.9567 | 0.9210 | 0.8419 | 0.8495 | 0.8982 | 0.9148 |
+| `bgm_afdb_4_authcopy` | 4 | 0.9297 | 0.9748 | 0.9359 | 0.9181 | 0.8835 | 0.9411 | 0.9072 |
+| `bgm_afdb_5_authcopy_oldcpsc` | 5 (old CPSC) | 0.9141 | 0.9676 | 0.9466 | 0.8526 | 0.8943 | 0.9057 | 0.9190 |
+| `bgm_afdb_4_authcopy_seed2` | 4 | 0.9016 | 0.9567 | 0.8997 | 0.9051 | 0.8270 | 0.9077 | 0.9072 |
+| `bgm_afdb_5` | 5 (old CPSC) | 0.8969 | 0.9595 | 0.8821 | 0.9250 | 0.8060 | 0.8856 | 0.9190 |
+| `author/bgm_afdb_1` (author's checkpoint) | 1 | 0.9107 | 0.9664 | 0.9010 | 0.9290 | 0.8325 | 0.9070 | 0.9107 |
+
+- The author's `bgm_afdb_1.pth` gives 0.9107, equal to the author's saved `bgm_afdb_cpsc_1`, so this setup reproduces theirs.
+- Mean accuracy of the five `_afdb_only` checkpoints: 0.8992 (author: 0.8694, or 0.9129 without fold 2).
+- Removing the validation cases changes accuracy by −0.011 to +0.011, so the leak is small.
+- Six cases account for 43–57% of all errors in every `_afdb_only` run: 46 (2,749 N), 100 (1,738 N, misclassified as AF by all five models), 71 (3,155 AF), 43 (4,819 N), 91 (2,619 AF), 2 (1,792 N).
+
 ## Error analysis
 
 2 Nov: errors per record for the corrected-CPSC `_authcopy` folds. Rows of `test_predictions.csv` are mapped to records by concatenating `fold_N.json["val"]` in order, which is the loader's order with `shuffle=False`. Worst record per fold:
