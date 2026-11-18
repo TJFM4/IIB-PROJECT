@@ -63,6 +63,16 @@ Notes:
 - `bgm_afdb_1_authcopy` vs the author's 17 Dec 03:25 run (the one that produced `bgm_afdb_1.pth`), same corrected CPSC fold-1 val set (21,320): mine peaks at 91.74% @ epoch 8 and stops at 18 epochs; the author's peaks at 93.05% @ epoch 12 and stops at 22. The curves differ from epoch 1 (77.28% vs 79.25%), so the gap comes from MPS-vs-CUDA dropout RNG / floating point and library versions, not from data. Test accuracy 0.9928 vs the author's 0.9989.
 - `bgm_afdb_5_authcopy`: AUC 0.9993 but recall 0.72. The ranking is near-perfect and the default 0.5 threshold is too conservative for AF on this fold (same pattern as `_oldcpsc` fold 5).
 
+## Training runs (CPSC2021 five-fold, tested on the CPSC fold)
+
+Configs: `replication_trials/authcopy_cpsc/bgm_cpsc_N.yaml`. Train on the CPSC2021 (corrected) fold-N train cases, validate on the AFDB fold-N val records, test on the CPSC2021 fold-N val cases. Here **Best val** = best AFDB validation accuracy (%) @ epoch. `vertical_flip` is not set, so it defaults to on.
+
+| Title | Finished | Code / config | lr | SCL λ | Epochs | Best val | Acc | AUC | F1 | Prec | Recall | Spec (N) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `bgm_cpsc_1_authcopy` | 18 Nov | authcopy | 1e-3 | 0.01 | 25 | 99.70@16 | 0.9718 | 0.9971 | 0.9617 | 0.9673 | 0.9562 | 0.9810 |
+
+Author's saved results, for reference (`BGM_GitHub/results/bgm_cpsc_N`): accuracy 0.9813, 0.9824, 0.9816, 0.9836, 0.9718. Fold 1 in full: AUC 0.9984, F1 0.9748, Prec 0.9719, Recall 0.9777, Spec (N) 0.9834.
+
 ## Evaluations without training
 
 | Results folder | Date | Checkpoint | Test set | Acc | AUC | F1 | Prec | Recall | Spec (N) | Purpose |
@@ -141,6 +151,7 @@ Flip in training: `_authcopy` and no-suffix runs used the author's `ecg_augment.
 | Title | Date | Reason |
 |---|---|---|
 | `bgm_afdb_1_authexact` | 30–31 Oct | Author's December 2025 code and configs (validation = AFDB test fold, CosineAnnealing, 256×256 spectrograms). Needs about 18 GB per step at batch 128, more than the Mac's 16 GB, so it swapped at about 108 s per batch. Stopped partway through epoch 1. No checkpoint or results; `runs/` holds an empty event file. |
+| `bgm_cpsc_2_authcopy` | 18 Nov | Stopped by hand during epoch 8, about 1 h 50 min in (best AFDB val so far 73.43% @ 6). Not tested. Checkpoint and TensorBoard folder deleted, and its output removed from the log. |
 
 ## Logs
 
@@ -149,3 +160,4 @@ Flip in training: `_authcopy` and no-suffix runs used the author's `ecg_augment.
 | `logs/authcopy_nk0212_folds234.log` | Authcopy folds 2–4, corrected CPSC (30 Oct) |
 | `logs/authexact_folds12345.log` | Aborted authexact fold 1 (30–31 Oct) |
 | `logs/authcopy_nk0212_folds15.log` | Authcopy folds 1 and 5, corrected CPSC (1 Nov 22:43 – 2 Nov 03:59) |
+| `logs/authcopy_cpsc_folds1.log` | CPSC-trained authcopy fold 1 (17 Nov evening – 18 Nov 06:52) |
