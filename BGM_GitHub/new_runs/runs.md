@@ -70,6 +70,19 @@ Configs: `replication_trials/authcopy_cpsc/bgm_cpsc_N.yaml`. Train on the CPSC20
 | Title | Finished | Code / config | lr | SCL λ | Epochs | Best val | Acc | AUC | F1 | Prec | Recall | Spec (N) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `bgm_cpsc_1_authcopy` | 18 Nov | authcopy | 1e-3 | 0.01 | 25 | 99.70@16 | 0.9718 | 0.9971 | 0.9617 | 0.9673 | 0.9562 | 0.9810 |
+| `bgm_cpsc_2_authcopy` | 19 Nov | authcopy | 1e-3 | 0.01 | 25 | 93.99@23 | 0.9617 | 0.9948 | 0.9438 | 0.9243 | 0.9641 | 0.9605 |
+| `bgm_cpsc_3_authcopy` | 20 Nov | authcopy | 1e-3 | 0.01 | 25 | 97.60@17 | 0.9114 | 0.9828 | 0.8826 | 0.8057 | 0.9759 | 0.8780 |
+| `bgm_cpsc_4_authcopy` (attempt 1, seed 3407) | 21 Nov | authcopy | 1e-3 | 0.01 | 12 (early stop) | 96.59@2 | 0.7807 | 0.8880 | 0.6686 | 0.7236 | 0.6213 | 0.8688 |
+| `bgm_cpsc_5_authcopy` | 21 Nov | authcopy | 1e-3 | 0.01 | 21 (early stop) | 97.65@11 | 0.8747 | 0.9476 | 0.8139 | 0.8200 | 0.8079 | 0.9090 |
+| `bgm_cpsc_4_authcopy` (attempt 2, seed 2) | 22 Nov | authcopy, `authcopy_seeds/bgm_cpsc_4_authcopy_seed2.yaml` | 1e-3 | 0.01 | 19 (early stop) | 95.41@9 | 0.8939 | 0.9132 | 0.8601 | 0.8105 | 0.9163 | 0.8815 |
+| `bgm_cpsc_4_authcopy_seed963198` | 23 Nov | authcopy, `authcopy_seeds/bgm_cpsc_4_authcopy_seed963198.yaml` (random seed) | 1e-3 | 0.01 | 17 (early stop) | 94.64@7 | 0.8788 | 0.9265 | 0.8535 | 0.7491 | 0.9917 | 0.8164 |
+| `bgm_cpsc_5_authcopy_seed320601` | 23 Nov | authcopy, `authcopy_seeds/bgm_cpsc_5_authcopy_seed320601.yaml` (random seed) | 1e-3 | 0.01 | 18 (early stop) | 96.87@8 | 0.8978 | 0.9535 | 0.8346 | 0.9250 | 0.7603 | 0.9684 |
+
+**Random-seed reruns (22 Nov 21:56 – 23 Nov 07:31, log `logs/authcopy_cpsc_folds45_random.log`):** fold 4 at seed 963198 scores below seed 2 on accuracy and Spec (N), so seed 2 (`bgm_cpsc_4_authcopy`) stays fold 4's best on both. Fold 5 at seed 320601 scores above seed 3407 on accuracy (0.8978 vs 0.8747) and Spec (N) (0.9684 vs 0.9090), but its recall falls to 0.76. Fold 4 is worse at every seed tried: the best AFDB validation accuracy is reached by epoch 2–9 and does not pick a checkpoint that transfers to the CPSC test cases.
+
+**Fold 4 rerun (21 Nov 22:54 – 22 Nov 04:02):** the seed-2 config kept the title `bgm_cpsc_4_authcopy`, so it overwrote attempt 1's checkpoint (`checkpoint/bgm_cpsc_4_authcopy.pth`, now attempt 2's, saved 22 Nov 01:19) and results (`results/bgm_cpsc_4_authcopy/`, now attempt 2's). Attempt 1 survives only as the row above and its TensorBoard file (both event files are in `runs/bgm_cpsc_4_authcopy/`). Attempt 2 is the first run with CE / SCL / SCL-part losses in TensorBoard. Its AFDB validation loss swings between 0.32 and 0.84 from epoch to epoch while the training loss falls smoothly.
+
+Five-fold mean ± std (mine): Acc 0.9001 ± 0.0774, AUC 0.9621 ± 0.0459, F1 0.8541 ± 0.1188, Spec (N) 0.9195 ± 0.0497. Author: Acc 0.9801 ± 0.0047, AUC 0.9979 ± 0.0011. Fold 4's checkpoint is from epoch 2 (AFDB val peaked early, then early stopping after 10 more epochs), which likely explains its low CPSC scores. Folds 4–5 ran from `~/venvs/iib` before the CE/SCL loss logging was added, so their TensorBoard files only have the total loss.
 
 Author's saved results, for reference (`BGM_GitHub/results/bgm_cpsc_N`): accuracy 0.9813, 0.9824, 0.9816, 0.9836, 0.9718. Fold 1 in full: AUC 0.9984, F1 0.9748, Prec 0.9719, Recall 0.9777, Spec (N) 0.9834.
 
@@ -161,3 +174,8 @@ Flip in training: `_authcopy` and no-suffix runs used the author's `ecg_augment.
 | `logs/authexact_folds12345.log` | Aborted authexact fold 1 (30–31 Oct) |
 | `logs/authcopy_nk0212_folds15.log` | Authcopy folds 1 and 5, corrected CPSC (1 Nov 22:43 – 2 Nov 03:59) |
 | `logs/authcopy_cpsc_folds1.log` | CPSC-trained authcopy fold 1 (17 Nov evening – 18 Nov 06:52) |
+| `logs/authcopy_cpsc_fold2.log` | CPSC-trained authcopy fold 2, rerun (18 Nov 23:38 – 19 Nov 06:17) |
+| `logs/authcopy_cpsc_folds45.log` | CPSC-trained authcopy folds 4 and 5 (20 Nov 20:34 – 21 Nov 05:45) |
+| `logs/authcopy_cpsc_fold3.log` | CPSC-trained authcopy fold 3 (20 Nov 00:20 – 07:14), run from `~/venvs/iib` after `.venv` imports hung on iCloud |
+| `logs/authcopy_cpsc_fold4_seed2.log` | CPSC-trained authcopy fold 4 rerun, seed 2, written as `bgm_cpsc_4_authcopy` (21 Nov 22:54 – 22 Nov 04:02) |
+| `logs/authcopy_cpsc_folds45_random.log` | CPSC-trained authcopy folds 4 and 5, random seeds 963198 and 320601 (22 Nov 21:56 – 23 Nov 07:31) |

@@ -143,6 +143,11 @@ def get_dataloader(config, is_train=True):
     return loader
 
 
+def _fmt_parts(parts):
+    """'intra_time 1.23, intra_freq 4.56, inter_modal 7.89' for the epoch log line."""
+    return ', '.join(f'{k} {v:.4f}' for k, v in parts.items())
+
+
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, writer, config):
     """训练主循环"""
     best_accuracy = 0.0
@@ -171,6 +176,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             break
 
         model.train()
+        running_ce = 0.0
+        running_scl = 0.0
+        running_parts = {}      # unweighted SCL parts: intra_time, intra_freq, inter_modal
         running_loss = 0.0
         correct_preds = 0
         total_preds = 0
@@ -181,42 +189,62 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
                 optimizer.zero_grad()
                 outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
-                loss = criterion(outputs, labels) + lam*total_scl
+                ce = criterion(outputs, labels)
+                loss = ce + lam*total_scl
                 # loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
                 running_loss += loss.item()
+                running_ce += ce.item()
+                running_scl += float(total_scl)
+                for k, v in scl_losses.items():
+                    running_parts[k] = running_parts.get(k, 0.0) + float(v)
                 _, predicted = torch.max(outputs, 1)
                 correct_preds += (predicted == labels).sum().item()
                 total_preds += labels.size(0)
 
                 accuracy = 100 * correct_preds / total_preds
-                t.set_postfix(loss=running_loss / (t.n + 1), accuracy=accuracy)
+                t.set_postfix(loss=running_loss / (t.n + 1), ce=running_ce / (t.n + 1),
+                              scl=running_scl / (t.n + 1), accuracy=accuracy)
 
         # 训练指标
         epoch_loss = running_loss / len(train_loader)
+        epoch_ce = running_ce / len(train_loader)
+        epoch_scl = running_scl / len(train_loader)
+        epoch_parts = {k: v / len(train_loader) for k, v in running_parts.items()}
         epoch_accuracy = 100 * correct_preds / total_preds
 
         # 验证
         if val_loader is not None:
             model.eval()
             val_loss = 0.0
+            val_ce = 0.0
+            val_scl = 0.0
+            val_parts = {}
             val_correct = 0
             val_total = 0
             with torch.no_grad():
                 for ecgs,imgs, labels in val_loader:
                     ecgs,imgs, labels = ecgs.to(device), imgs.to(device), labels.to(device)
                     outputs,total_scl,scl_losses = model(ecgs,imgs,labels,True,True,True)
-                    loss = criterion(outputs, labels) + lam*total_scl
+                    ce = criterion(outputs, labels)
+                    loss = ce + lam*total_scl
                     # loss = criterion(outputs, labels)
                     val_loss += loss.item()
+                    val_ce += ce.item()
+                    val_scl += float(total_scl)
+                    for k, v in scl_losses.items():
+                        val_parts[k] = val_parts.get(k, 0.0) + float(v)
                     _, predicted = torch.max(outputs, 1)
                     val_correct += (predicted == labels).sum().item()
                     val_total += labels.size(0)
 
             val_accuracy = 100 * val_correct / val_total
             val_loss = val_loss / len(val_loader)
+            val_ce = val_ce / len(val_loader)
+            val_scl = val_scl / len(val_loader)
+            val_parts = {k: v / len(val_loader) for k, v in val_parts.items()}
 
         # 更新学习率
         if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
@@ -225,15 +253,25 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             scheduler.step()
 
         # 打印日志
-        tqdm.write(f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.2f}%')
+        tqdm.write(f'Epoch [{epoch+1}/{num_epochs}] Train: total {epoch_loss:.4f} = CE {epoch_ce:.4f} '
+           f'+ {lam} x SCL {epoch_scl:.4f} ({_fmt_parts(epoch_parts)}), acc {epoch_accuracy:.2f}%')
         if val_loader is not None:
-            tqdm.write(f'Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%')
+            tqdm.write(f'Epoch [{epoch+1}/{num_epochs}] Valid: total {val_loss:.4f} = CE {val_ce:.4f} '
+           f'+ {lam} x SCL {val_scl:.4f} ({_fmt_parts(val_parts)}), acc {val_accuracy:.2f}%')
 
         # TensorBoard 记录
         writer.add_scalar('Loss/train', epoch_loss, epoch + 1)
+        writer.add_scalar('LossCE/train', epoch_ce, epoch + 1)
+        writer.add_scalar('LossSCL/train', epoch_scl, epoch + 1)
+        for k, v in epoch_parts.items():
+            writer.add_scalar(f'SCL_{k}/train', v, epoch + 1)
         writer.add_scalar('Accuracy/train', epoch_accuracy, epoch + 1)
         if val_loader is not None: 
             writer.add_scalar('Loss/valid', val_loss, epoch + 1)
+            writer.add_scalar('LossCE/valid', val_ce, epoch + 1)
+            writer.add_scalar('LossSCL/valid', val_scl, epoch + 1)
+            for k, v in val_parts.items():
+                writer.add_scalar(f'SCL_{k}/valid', v, epoch + 1)
             writer.add_scalar('Accuracy/valid', val_accuracy, epoch + 1)
         writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch + 1)
 
